@@ -1,3 +1,315 @@
+## 2.106.0
+* Add `PROCESSOR_DOES_NOT_SUPPORT_MOTO_FOR_CARD_TYPE` to validation errors
+* Update `jackson-jr` to v2.9.9 to fix CVE-2018-11307 (#75 thanks @sehrope)
+* Add `threeDSecureAuthenticationId` to `ThreeDSecureInfo`
+* Add `acsTransactionId` to `ThreeDSecureInfo`
+* Add `paresStatus` to `ThreeDSecureInfo`
+* Add `threeDSecureServerTransactionId` to `ThreeDSecureInfo`
+* Add `threeDSecureLookupInfo` to `ThreeDSecureInfo`
+* Add `threeDSecureAuthenticateInfo` to `ThreeDSecureInfo`
+
+## 2.105.0
+* Add `merchantAccountId` setter to `ThreeDSecureLookupRequest`
+
+## 2.104.0
+* Add `getProcessorComments` to `Dispute`
+* Add `TRANSACTION_AMOUNT_NOT_SUPPORTED_BY_PROCESSOR` to validation errors
+* Deprecate `getForwardedComments` from `Dispute`
+* Deprecate `getRows` from `TransactionLevelFeeReport` in favor of `getCSVRecords`
+
+## 2.103.0
+* Add `getUniqueNumberIdentifier` to `CustomActionsPaymentMethodDetails`
+
+## 2.102.1
+* Fix issue where billing address was not applied correctly in `ThreeDSecureLookupRequest`
+
+## 2.102.0
+* Add `networkResponseCode` and `networkResponseText` fields to `Transaction` and `CreditCardVerification`
+* Add `graphQLClient` to the `BraintreeGateway` class
+* Add `threeDSecureInfo` to `CreditCardVerification`
+* Add `xid`, `cavv`, `eciFlag`, `dsTransactionId`, and `threeDSecureVersion` to `ThreeDSecureInfo`
+* Add `PayPalHereDetails` to `Transaction`
+
+## 2.101.0
+* Add more Venmo error codes to `ValidationErrorCode`
+
+## 2.100.0
+* Add `CustomActionsPaymentMethod` support
+
+## 2.99.0
+* Add Venmo error codes to `ValidationErrorCode`
+
+## 2.98.0
+* Avoid throwing an exception when Refunded Amount is empty in the Transaction-Level Fee Report
+* Add `captureId` field to `LocalPaymentDetail`
+* Add `refundId` field to `LocalPaymentDetail`
+* Add `debugId` field to `LocalPaymentDetail`
+* Add `transactionFeeAmount` field to `LocalPaymentDetail`
+* Add `transactionFeeCurrencyIsoCode` field to `LocalPaymentDetail`
+* Add `refundFromTransactionFeeAmount` field to `LocalPaymentDetail`
+* Add `refundFromTransactionFeeCurrencyIsoCode` field to `LocalPaymentDetail`
+* Add `dsTransactionId` to `ThreeDSecurePassthruRequest`
+
+## 2.97.0
+* Fix serialization of `ThreeDSecureLookupAdditionalInformation`
+* Return `AuthenticationInsight` when requested on `PaymentMethodNonce.create`
+* Add `roomTax` field to `TransactionIndustryDataRequest`
+* Add `noShow` field to `TransactionIndustryDataRequest`
+* Add `advancedDeposit` field to `TransactionIndustryDataRequest`
+* Add `fireSafe` field to `TransactionIndustryDataRequest`
+* Add `propertyPhone` field to `TransactionIndustryDataRequest`
+* Add `additionalChargeRequests` field to `TransactionIndustryDataRequest`
+* Add `payerInfo` to `PaymentMethodNonceDetails` class
+* Add `PostalCodeIsRequiredForCardBrandAndProcessor` to validation errors
+
+## 2.96.0
+* Add `ThreeDSecureLookup`
+
+## 2.95.0
+* Add `revokedAt` field to `PayPalAccount`
+* Add support for `PAYMENT_METHOD_REVOKED_BY_CUSTOMER` webhook
+* Add `payment_method_nonce` field to `LocalPaymentCompleted` webhook
+* Add `transaction` field to `LocalPaymentCompleted` webhook
+* Add `LocalPaymentDetails` to transactions
+
+## 2.94.0
+* Add `refundFromTransactionFeeAmount` field to `PayPalDetails`
+* Add `refundFromTransactionFeeCurrencyIsoCode` field to `PayPalDetails`
+* Add `token_issuance` gateway reject status to support Venmo transactions
+* Add `threeDSecureVersion` to `ThreeDSecurePassthruRequest`
+
+## 2.93.0
+* Add `accountType` to `Transaction`, `CreditCard`, `PaymentMethod`, and `CreditCardVerification`
+
+## 2.93.0
+* Add `accountType` to `Transaction`, `CreditCard`, `PaymentMethod`, and `CreditCardVerification`
+
+## 2.92.0
+* Deprecate `GRANTED_PAYMENT_INSTRUMENT_UPDATE` and add `GRANTOR_UPDATED_GRANTED_PAYMENT_METHOD` and `RECIPIENT_UPDATED_GRANTED_PAYMENT_METHOD`
+* Fix bug where dates in the Transaction-Level Fee Report could be parsed incorrectly due to timezone differences
+* Add External Vault and Risk Data to `CreditCardVerificationRequest`
+* Add `prepaid` field to `AndroidPayDetails`
+* Add `healthcare` field to `AndroidPayDetails`
+* Add `debit` field to `AndroidPayDetails`
+* Add `durbinRegulated` field to `AndroidPayDetails`
+* Add `commercial` field to `AndroidPayDetails`
+* Add `payroll` field to `AndroidPayDetails`
+* Add `issuingBank` field to `AndroidPayDetails`
+* Add `countryOfIssuance` field to `AndroidPayDetails`
+* Add `productId` field to `AndroidPayDetails`
+* Add `globalId` field to `AndroidPayDetails`
+
+## 2.91.0
+* Add `bin` field to `PaymentMethodNonceDetails`
+* Add `prepaid` field to `ApplePayDetails`
+* Add `healthcare` field to `ApplePayDetails`
+* Add `debit` field to `ApplePayDetails`
+* Add `durbinRegulated` field to `ApplePayDetails`
+* Add `commercial` field to `ApplePayDetails`
+* Add `payroll` field to `ApplePayDetails`
+* Add `issuingBank` field to `ApplePayDetails`
+* Add `countryOfIssuance` field to `ApplePayDetails`
+* Add `productId` field to `ApplePayDetails`
+* Add `bin` field to `ApplePayDetails`
+* Add `globalId` field to `ApplePayDetails`
+* Add Error indicating pdf uploads too long for dispute evidence.
+
+## 2.90.0
+* Add `fraudServiceProvider` field to `riskData`
+
+## 2.89.0
+* Allow PayPal payment ID and payer ID to be passed during transaction create
+* Fix bug where SDK expects `granted_payment_instrument_revoked` instead of `granted_payment_method_revoked`
+
+## 2.88.0
+* Add `travel_flight` support to industry-specific data
+
+## 2.87.0
+* Add `GrantedPaymentMethodRevoked` webhook response objects
+* Add missing `getCardholderName` method to ApplePayCard class
+* Add missing nonce detail params for non-credit card nonces
+
+## 2.86.0
+* Add `authorizationExpiresAt` to `Transaction`
+
+## 2.85.0
+* Add venmo account details to payment method nonce model
+* Add `ProcessorResponseType` to `Transaction`, `AuthorizationAdjustment`, and `CreditCardVerification`.
+
+## 2.84.0
+* Add `lastFour` to `PaymentMethodNonceDetails`
+* Remove final specification from `MerchantAccountGateway` (#64)
+* Fix dispute results in transactions not showing the correct status sometimes
+* Pass response message to http error (#66)
+* Add `getNetworkTransactionId` as new field on subfield transaction response.
+* Add support for `ExternalVaultRequest` for TransactionRequest
+* Add support for `LocalPaymentCompleted` webhook notifications.
+* Close FileInputStream in `addFilePart` if an exception occurs when reading.
+* Add `ProcessorResponseType` to `Transaction`, `AuthorizationAdjustment`, and `CreditCardVerification`.
+
+## 2.83.1
+* Restore Javadoc
+
+## 2.83.0
+* Add subscription charged unsuccessfully sample webhook to webhook testing gateway
+* Add initial support for GraphQL API's
+* Add Transaction-Level Fee Report API
+* Add support for Samsung Pay
+
+## 2.81.0
+* Allow payee ID to be passed in options params for transaction create
+* Add `processor_response_code` and `processor_response_text` to authorization adjustments subfield in transaction response.
+* Add `getMerchantId` to `ConnectedMerchantStatusTransitioned` and `ConnectedMerchantPayPalStatusChanged`, and `getOauthApplicationClientId` to OAuthAccessRevocation webhooks
+* Fix webhook testing sample xml for dispute webhooks to include `amount-won` and `amount-disputed`
+
+## 2.80.0
+* Add support for US Bank Account verifications API
+
+## 2.79.0
+* Update `jackson-jr` to v2.9.5 to fix an incompatibility with Java 9
+* Fix issue where multiple search criteria was not allowed. [#62](https://github.com/braintree/braintree_java/issues/62).
+* Add support for `SubscriptionDetails` and deprecate `Subscription` in `Transaction`
+
+## 2.78.0
+* Add support for `OAUTH_ACCESS_REVOKED` in `WebhookNotification`s
+* Add support for dispute search by `customerId`, `disbursementDate`, and `effectiveDate`
+* Add `payerId` accessor in `PayPalAccount`
+* Add support for VCR compelling evidence dispute representment
+
+## 2.77.0
+* Fix possible NullPointerException in UsBankAccount
+* Add support for `association_filter_id` in `Customer#find`
+
+## 2.76.0
+* Deprecated `TRANSACTION_LINE_ITEM_DISCOUNT_AMOUNT_MUST_BE_GREATER_THAN_ZERO` error in favor of `TRANSACTION_LINE_ITEM_DISCOUNT_AMOUNT_CANNOT_BE_NEGATIVE`
+* Deprecated `TRANSACTION_LINE_ITEM_UNIT_TAX_AMOUNT_MUST_BE_GREATER_THAN_ZERO` error in favor of `TRANSACTION_LINE_ITEM_UNIT_TAX_AMOUNT_CANNOT_BE_NEGATIVE`
+* Deprecated `TRANSACTION_LINE_ITEM_TAX_AMOUNT_MUST_BE_GREATER_THAN_ZERO` error in favor of `TRANSACTION_LINE_ITEM_TAX_AMOUNT_CANNOT_BE_NEGATIVE`
+
+## 2.75.0
+* Update https certificate bundle
+* Add `getSourceMerchantId()` to `WebhookNotification`s
+* Add support for taxAmount field on transaction lineItems
+* Swap out `org.json` package for `jackson-jr` to fix licensing issues (#58,#59)
+* Add support for `profile_id` in Transaction#create options for VenmoAccounts
+
+## 2.74.1
+* Add support for line_items
+* Add support for tagged evidence in DisputeGateway#addTextEvidence (Beta release)
+* Add support for raw Apple Pay processing
+* Add support for setting connect timeout (#56)
+
+## 2.74.0
+
+* Add support for upgrading a PayPal future payment refresh token to a billing agreement
+* Add loginOnly parameter to OAuth connect URL
+* Add support for Granted Payment Instrument Update webhook
+* Add ability to create a transaction from a shared nonce
+* Fix spec to expect PayPal transaction to settle immediately after successful capture
+* Add `options` -> `paypal` -> `shipping` for creating & updating customers as well as creating payment methods
+* Add `imageUrl` to `ApplePayDetails`
+* Deprecate `OAuthGateway::computeSignature`
+* Fix spec to expect PayPal transactions to move to settling rather than settled
+* Add `deviceDataCaptured` field to `RiskData`
+* Add `binData` to `PaymentMethodNonce`
+* Throw error if `signature` or `payload` in webhook is null
+* Fix `receivedDate`/`replyByDate` by returning `DateRangeNode` in `DisputeSearchRequest` (Note: this is a breaking change for limited relese disputes API)
+
+## 2.73.0
+
+* Add iDEAL webhook support
+* Add `IDEAL_PAYMENT` to `PaymentInstrumentType`
+* Add document upload API
+* Add AuthorizationAdjustment class and `authorizationAdjustments` to Transaction
+* Coinbase is no longer a supported payment method. `PAYMENT_METHOD_NO_LONGER_SUPPORTED` will be returned for Coinbase operations
+* Add facilitated transaction details to Transaction if present
+* Add `bin` to `ApplePayCard`
+* Add `submitForSettlement` to `SubscriptionGateway.retryCharge`
+* Add `options` -> `paypal` -> `description` for creating and updating subscriptions
+* Add `accept` method for the Dispute API
+* Add `addTextEvidence` method for the Dispute API
+* Add `addFileEvidence` method for the Dispute API
+* Add `finalize` method for the Dispute API
+* Add `find` method for the Dispute API
+* Add `removeEvidence` method for the Dispute API
+* Add `search` method for the Dispute API
+
+## 2.72.1
+
+* Add additional properties to `PaymentMethodNonce`
+
+## 2.72.0
+
+* Add `skipAvs` and `skipCvv` options to `TransactionOptionsRequest`
+* `CreditCardVerification` now contains `amount` and `currencyIsoCode`
+* Add iDEAL support
+* Add Masterpass support
+* Add Visa Checkout support
+* Add support for additional PayPal options when vaulting a PayPal Order
+* Stop sending `account_description` field from us bank accounts
+* Add `ConnectedMerchantStatusTransitioned` and `ConnectedMerchantPayPalStatusChanged` Auth webhooks
+
+## 2.71.0
+* Stop sending account_description field from us bank accounts
+
+## 2.70.0
+* Add functionality to list all merchant accounts for a merchant with `MerchantAccount.all`.
+* Update UsBank tests to use legal routing numbers.
+* Add option `skip_advanced_fraud_check` for transaction flows.
+* Raise an exception if fetching pages of results times out during a transaction search.
+
+## 2.69.0
+* Fix `UsBankAccount` support for `Customer`s
+* Throw `ConfigurationException` for missing credentials
+* Refactor payment method grant and revoke APIs to accept `PaymentMethodGrantRequest` and `PaymentMethodGrantRevokeRequest` objects as parameters
+
+## 2.68.0
+* Add 'UsBankAccount' payment method
+
+## 2.67.0
+* Use TLS v1.2 by default and fallback to TLS
+* Add getPlanId() to SubscriptionStatusEvent
+* Add createdAt to subscription search
+
+## 2.66.0
+* Log encoding error instead of printing stack trace
+* Reuse SSLSocketFactory for http requests
+* Allow proxy objects to be used to specify proxy config
+* Add currency iso code
+* Expose credit card product ID
+* Add validation error for verifications with submerchants
+
+## 2.65.0
+* Allow passing OAuth scopes to `Merchant#create`
+* Support passing `transaction_source` for setting moto or recurring ECI flag
+* Add support for passing risk data
+* Allow updating default_payment_method on Customer
+
+## 2.64.0
+* Add OrderId to refund
+* Add 3DS Pass thru support
+* Add verificiation amount option to Payment Method request
+* Expose ids in resource collections
+
+## 2.63.0
+* Add method of revoking OAuth access tokens.
+
+## 2.62.0
+* Add transaction `UpdateDetails`
+* Add ssnLast4 to merchant account individual details
+* Support for Too Many Requests response codes
+
+## 2.61.0
+* Add new landing_page param to OAuthConnectUrlRequest
+
+## 2.60.0
+* Add getSubscriptions method to PaymentMethod interface (Thanks @singhalkul!)
+* Add establishedOn attribute to partner business data
+* Allow passing companyName and currencies to `Merchant#create`
+
+## 2.59.0
+* Remove java.util.logging.ConsoleHandler
+* Add isInvalid error code for addresses
+
 ## 2.58.0
 * Add timeout attribute to Configuration
 * Adds shared vault parameters
@@ -322,7 +634,7 @@
 ## 2.4.0
 
 * Added unified message to result objects
-* Added ability to specify country using countryName, countryCodeAlpha2, countryCodeAlpha3, or countryCodeNumeric (see [ISO_3166-1](http://en.wikipedia.org/wiki/ISO_3166-1))
+* Added ability to specify country using countryName, countryCodeAlpha2, countryCodeAlpha3, or countryCodeNumeric (see [ISO_3166-1](https://en.wikipedia.org/wiki/ISO_3166-1))
 * Added gatewayRejectionReason to Transaction and Verification
 * When creating a Subscription, return failed transaction on the Result if the initial transaction is not successful
 
@@ -397,4 +709,3 @@
 ## 1.0.0
 
 * Initial release
-

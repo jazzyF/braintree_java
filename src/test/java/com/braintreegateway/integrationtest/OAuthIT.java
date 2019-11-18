@@ -1,6 +1,7 @@
 package com.braintreegateway.integrationtest;
 
 import com.braintreegateway.*;
+import com.braintreegateway.exceptions.AuthenticationException;
 import com.braintreegateway.testhelpers.TestHelper;
 import org.junit.Test;
 import org.junit.Before;
@@ -73,6 +74,26 @@ public class OAuthIT extends IntegrationTest {
         assertEquals("bearer", refreshTokenResult.getTarget().getTokenType());
     }
 
+    @Test(expected = AuthenticationException.class)
+    public void revokeAccessToken() {
+        String code = TestHelper.createOAuthGrant(gateway, "integration_merchant_id", "read_write");
+
+        OAuthCredentialsRequest oauthCredentials = new OAuthCredentialsRequest().
+             code(code).
+             scope("read_write");
+
+        Result<OAuthCredentials> result = gateway.oauth().createTokenFromCode(oauthCredentials);
+
+        String accessToken = result.getTarget().getAccessToken();
+        Result<OAuthResult> revokeAccessTokenResult = gateway.oauth().revokeAccessToken(accessToken);
+
+        assertTrue(revokeAccessTokenResult.isSuccess());
+        assertTrue(revokeAccessTokenResult.getTarget().getResult());
+
+        gateway = new BraintreeGateway(accessToken);
+        gateway.customer().create(new CustomerRequest());
+    }
+
     @Test
     public void connectUrlReturnsCorrectUrl() {
         OAuthConnectUrlRequest request = new OAuthConnectUrlRequest().
@@ -80,6 +101,8 @@ public class OAuthIT extends IntegrationTest {
             redirectUri("http://bar.example.com").
             scope("read_write").
             state("baz_state").
+            landingPage("login").
+            loginOnly(true).
             user().
                 country("USA").
                 email("foo@example.com").
@@ -111,6 +134,7 @@ public class OAuthIT extends IntegrationTest {
                 fulfillmentCompletedIn(7).
                 currency("USD").
                 website("http://example.com").
+                establishedOn("1988-10").
                 done();
 
         String urlString = gateway.oauth().connectUrl(request);
@@ -129,6 +153,9 @@ public class OAuthIT extends IntegrationTest {
             assertEquals("http://bar.example.com", query.get("redirect_uri"));
             assertEquals("read_write", query.get("scope"));
             assertEquals("baz_state", query.get("state"));
+            assertEquals("login", query.get("landing_page"));
+            assertEquals("true", query.get("login_only"));
+            assertNull(query.get("signup_only"));
 
             assertEquals("USA", query.get("user[country]"));
 
@@ -161,11 +188,7 @@ public class OAuthIT extends IntegrationTest {
             assertEquals("7", query.get("business[fulfillment_completed_in]"));
             assertEquals("USD", query.get("business[currency]"));
             assertEquals("http://example.com", query.get("business[website]"));
-
-            assertEquals(64, query.get("signature").length());
-            assertTrue(query.get("signature").matches("^[a-f0-9]+$"));
-            assertEquals("SHA256", query.get("algorithm"));
-
+            assertEquals("1988-10", query.get("business[established_on]"));
         } catch (java.io.UnsupportedEncodingException e) {
             fail("unsupported encoding");
         } catch (java.net.MalformedURLException e) {
@@ -217,6 +240,49 @@ public class OAuthIT extends IntegrationTest {
         }
     }
 
+    @Test
+    public void connectUrlCanIncludeSignupOnly() {
+        OAuthConnectUrlRequest request = new OAuthConnectUrlRequest()
+            .signupOnly(true);
+
+        String urlString = gateway.oauth().connectUrl(request);
+
+        try {
+            URL url = new URL(urlString);
+
+            Map<String, String> query = TestHelper.splitQuery(url);
+
+            assertEquals("true", query.get("signup_only"));
+        } catch (java.io.UnsupportedEncodingException e) {
+            fail("unsupported encoding");
+        } catch (java.net.MalformedURLException e) {
+            fail("malformed url");
+        }
+    }
+
+    @Test
+    public void connectUrlOnlyIncludesLoginOnlyIfBothLoginOnlyAndSignupOnlyAreSpecified() {
+        OAuthConnectUrlRequest request = new OAuthConnectUrlRequest()
+            .loginOnly(true)
+            .signupOnly(true);
+
+        String urlString = gateway.oauth().connectUrl(request);
+
+        try {
+            URL url = new URL(urlString);
+
+            Map<String, String> query = TestHelper.splitQuery(url);
+
+            assertEquals("true", query.get("login_only"));
+            assertNull(query.get("signup_only"));
+        } catch (java.io.UnsupportedEncodingException e) {
+            fail("unsupported encoding");
+        } catch (java.net.MalformedURLException e) {
+            fail("malformed url");
+        }
+    }
+
+    @SuppressWarnings("deprecation")
     @Test
     public void computeSignatureReturnsCorrectSignature() {
         String url = "http://localhost:3000/oauth/connect?business%5Bname%5D=We+Like+Spaces&client_id=client_id%24development%24integration_client_id";

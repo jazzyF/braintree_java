@@ -9,16 +9,20 @@ public class PayPalDetails {
     private String token;
     private String imageUrl;
     private String debugId;
+    private String payeeId;
     private String payeeEmail;
     private String customField;
     private String payerId;
     private String payerFirstName;
     private String payerLastName;
+    private String payerStatus;
     private String sellerProtectionStatus;
     private String captureId;
     private String refundId;
     private String transactionFeeAmount;
     private String transactionFeeCurrencyIsoCode;
+    private String refundFromTransactionFeeAmount;
+    private String refundFromTransactionFeeCurrencyIsoCode;
     private String description;
 
     public PayPalDetails(NodeWrapper node) {
@@ -28,16 +32,20 @@ public class PayPalDetails {
         token = node.findString("token");
         imageUrl = node.findString("image-url");
         debugId = node.findString("debug-id");
+        payeeId = node.findString("payee-id");
         payeeEmail = node.findString("payee-email");
         customField = node.findString("custom-field");
         payerId = node.findString("payer-id");
         payerFirstName = node.findString("payer-first-name");
         payerLastName = node.findString("payer-last-name");
+        payerStatus = node.findString("payer-status");
         sellerProtectionStatus = node.findString("seller-protection-status");
         refundId = node.findString("refund-id");
         captureId = node.findString("capture-id");
         transactionFeeAmount = node.findString("transaction-fee-amount");
         transactionFeeCurrencyIsoCode = node.findString("transaction-fee-currency-iso-code");
+        refundFromTransactionFeeAmount = node.findString("refund-from-transaction-fee-amount");
+        refundFromTransactionFeeCurrencyIsoCode = node.findString("refund-from-transaction-fee-currency-iso-code");
         description = node.findString("description");
     }
 
@@ -65,6 +73,10 @@ public class PayPalDetails {
         return debugId;
     }
 
+    public String getPayeeId() {
+      return payeeId;
+    }
+
     public String getPayeeEmail() {
       return payeeEmail;
     }
@@ -85,6 +97,10 @@ public class PayPalDetails {
       return payerLastName;
     }
 
+    public String getPayerStatus() {
+      return payerStatus;
+    }
+
     public String getSellerProtectionStatus() {
       return sellerProtectionStatus;
     }
@@ -103,6 +119,14 @@ public class PayPalDetails {
 
     public String getTransactionFeeCurrencyIsoCode() {
       return transactionFeeCurrencyIsoCode;
+    }
+
+    public String getRefundFromTransactionFeeAmount() {
+      return refundFromTransactionFeeAmount;
+    }
+
+    public String getRefundFromTransactionFeeCurrencyIsoCode() {
+      return refundFromTransactionFeeCurrencyIsoCode;
     }
 
     public String getDescription() {

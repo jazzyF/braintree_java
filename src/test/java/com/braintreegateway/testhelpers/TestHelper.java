@@ -7,17 +7,25 @@ import com.braintreegateway.util.Sha1Hasher;
 import com.braintreegateway.util.Http;
 import com.braintreegateway.util.NodeWrapper;
 import com.braintreegateway.util.QueryString;
+import com.braintreegateway.util.StringUtils;
 import com.braintreegateway.EuropeBankAccount.MandateType;
+
+import com.braintreegateway.testhelpers.MerchantAccountTestConstants;
 
 import com.braintreegateway.org.apache.commons.codec.binary.Base64;
 
 import org.junit.Ignore;
+import com.fasterxml.jackson.jr.ob.JSON;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.net.URLDecoder;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.HttpsURLConnection;
 import java.nio.charset.Charset;
 import java.util.Calendar;
 import java.util.Comparator;
@@ -26,6 +34,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.*;
 import java.io.UnsupportedEncodingException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 import static org.junit.Assert.*;
 
@@ -124,7 +134,7 @@ public abstract class TestHelper {
         NodeWrapper response = new Http(gateway.getConfiguration()).post(url, request);
         assertTrue(response.isSuccess());
 
-        String token = response.findString("three-d-secure-token");
+        String token = response.findString("three-d-secure-authentication-id");
         assertNotNull(token);
         return token;
     }
@@ -171,7 +181,7 @@ public abstract class TestHelper {
 
       String authorizationFingerprint = extractParamFromJson("authorizationFingerprint", clientToken);
       Configuration configuration = gateway.getConfiguration();
-      String url = configuration.getBaseURL() + configuration.getMerchantPath() + "/client_api/nonces.json";
+      String url = configuration.getBaseURL() + configuration.getMerchantPath() + "/client_api/v1/payment_methods/credit_cards";
       QueryString payload = new QueryString();
       payload.append("authorization_fingerprint", authorizationFingerprint).
         append("shared_customer_identifier_type", "testing").
@@ -180,7 +190,6 @@ public abstract class TestHelper {
         append("credit_card[expiration_month]", "11").
         append("share", "true").
         append("credit_card[expiration_year]", "2099");
-
 
       String responseBody;
       String nonce = "";
@@ -191,6 +200,17 @@ public abstract class TestHelper {
         throw new RuntimeException(e);
       }
       return nonce;
+    }
+
+    public static String generateThreeDSecureNonce(BraintreeGateway gateway, CreditCardRequest creditCardRequest) {
+        String merchantAccountId = MerchantAccountTestConstants.THREE_D_SECURE_MERCHANT_ACCOUNT_ID;
+        String url = gateway.getConfiguration().getMerchantPath() + "/three_d_secure/create_nonce/" + merchantAccountId;
+        NodeWrapper response = new Http(gateway.getConfiguration()).post(url, creditCardRequest);
+        assertTrue(response.isSuccess());
+
+        String nonce = response.findString("nonce");
+        assertNotNull(nonce);
+        return nonce;
     }
 
     public static String decodeClientToken(String rawClientToken) {
@@ -223,6 +243,27 @@ public abstract class TestHelper {
       return nonce;
     }
 
+    public static String generateOrderPaymentPayPalNonce(BraintreeGateway gateway) {
+        QueryString payload = new QueryString();
+        payload.append("paypal_account[intent]", "order");
+        payload.append("paypal_account[payment_token]", "fake_payment_token");
+        payload.append("paypal_account[payer_id]", "fake_payer_id");
+
+        return generatePayPalNonce(gateway, payload);
+    }
+
+    public static String generateAuthorizationFingerprint (BraintreeGateway gateway, String customerId) {
+      ClientTokenRequest clientTokenRequest = new ClientTokenRequest().
+        customerId(customerId);
+
+      String encodedClientToken = gateway.clientToken().generate(clientTokenRequest);
+      String clientToken = TestHelper.decodeClientToken(encodedClientToken);
+
+      String authorizationFingerprint = extractParamFromJson("authorizationFingerprint", clientToken);
+
+      return authorizationFingerprint;
+    }
+
     public static String generateNonceForCreditCard(BraintreeGateway gateway, CreditCardRequest creditCardRequest, String customerId, boolean validate) {
       ClientTokenRequest clientTokenRequest = new ClientTokenRequest().
         customerId(customerId);
@@ -250,45 +291,6 @@ public abstract class TestHelper {
         throw new RuntimeException(e);
       }
       return nonce;
-    }
-
-    public static String generateEuropeBankAccountNonce(BraintreeGateway gateway, Customer customer) {
-        SEPAClientTokenRequest request = new SEPAClientTokenRequest();
-        request.customerId(customer.getId());
-        request.mandateType(EuropeBankAccount.MandateType.BUSINESS);
-        request.mandateAcceptanceLocation("Rostock, Germany");
-
-        String encodedClientToken = gateway.clientToken().generate(request);
-        String clientToken = TestHelper.decodeClientToken(encodedClientToken);
-
-        String authorizationFingerprint = extractParamFromJson("authorizationFingerprint", clientToken);
-        Configuration configuration = gateway.getConfiguration();
-        String url = configuration.getBaseURL() + configuration.getMerchantPath() + "/client_api/v1/sepa_mandates";
-        QueryString payload = new QueryString();
-        payload.append("authorization_fingerprint", authorizationFingerprint)
-              .append("sepa_mandate[locale]", "de-DE")
-              .append("sepa_mandate[bic]", "DEUTDEFF")
-              .append("sepa_mandate[iban]", "DE89370400440532013000")
-              .append("sepa_mandate[accountHolderName]", "Bob Holder")
-              .append("sepa_mandate[billingAddress][streetAddress]", "123 Currywurst Way")
-              .append("sepa_mandate[billingAddress][extendedAddress]", "Lager Suite")
-              .append("sepa_mandate[billingAddress][firstName]", "Wilhelm")
-              .append("sepa_mandate[billingAddress][lastName]", "Dix")
-              .append("sepa_mandate[billingAddress][locality]", "Frankfurt")
-              .append("sepa_mandate[billingAddress][postalCode]", "60001")
-              .append("sepa_mandate[billingAddress][countryCodeAlpha2]", "DE")
-              .append("sepa_mandate[billingAddress][region]", "Hesse");
-
-        String responseBody;
-        String nonce = "";
-        try {
-            responseBody = HttpHelper.post(url, payload.toString());
-            nonce = extractParamFromJson("nonce", responseBody);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        return nonce;
     }
 
     public static String getNonceForPayPalAccount(BraintreeGateway gateway, String consentCode) {
@@ -439,5 +441,125 @@ public abstract class TestHelper {
             }
         }
         return queryPairs;
+    }
+
+    public static String generateValidUsBankAccountNonce(BraintreeGateway gateway) {
+        return generateValidUsBankAccountNonce(gateway,"567891234");
+    }
+
+    public static String generateValidUsBankAccountNonce(BraintreeGateway gateway, String accountNumber) {
+      String encodedClientToken = gateway.clientToken().generate();
+      String clientToken = TestHelper.decodeClientToken(encodedClientToken);
+      String payload = new StringBuilder()
+          .append("{\n")
+            .append("\"type\": \"us_bank_account\",\n")
+            .append("\"billing_address\": {\n")
+                .append("\"street_address\": \"123 Ave\",\n")
+                .append("\"region\": \"CA\",\n")
+                .append("\"locality\": \"San Francisco\",\n")
+                .append("\"postal_code\": \"94112\"\n")
+            .append("},\n")
+            .append("\"account_type\": \"checking\",\n")
+            .append("\"ownership_type\": \"personal\",\n")
+            .append("\"routing_number\": \"021000021\",\n")
+            .append("\"account_number\": \"" + accountNumber + "\",\n")
+            .append("\"first_name\": \"Dan\",\n")
+            .append("\"last_name\": \"Schulman\",\n")
+            .append("\"ach_mandate\": {\n")
+                .append("\"text\": \"cl mandate text\"\n")
+            .append("}\n")
+          .append("}")
+        .toString();
+
+        String nonce = "";
+        try {
+            Map<String, Object> json = JSON.std.mapFrom(clientToken);
+            URL url = new URL(((Map) json.get("braintree_api")).get("url") + "/tokens");
+            String token = (String) ((Map) json.get("braintree_api")).get("access_token");
+            SSLContext sc = SSLContext.getInstance("TLSv1.2");
+            sc.init(null, null, null);
+            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+            connection.setSSLSocketFactory(sc.getSocketFactory());
+            connection.setRequestMethod("POST");
+            connection.addRequestProperty("Content-Type", "application/json");
+            connection.addRequestProperty("Braintree-Version", "2016-10-07");
+            connection.addRequestProperty("Authorization", "Bearer " + token);
+            connection.setDoOutput(true);
+            connection.getOutputStream().write(payload.getBytes("UTF-8"));
+            connection.getOutputStream().close();
+
+            InputStream responseStream = connection.getInputStream();
+            String body = StringUtils.inputStreamToString(responseStream);
+            responseStream.close();
+            Map<String, Object> responseJson  = JSON.std.mapFrom(body);
+            nonce = (String) ((Map) responseJson.get("data")).get("id");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return nonce;
+    }
+
+    public static String generatePlaidUsBankAccountNonce(BraintreeGateway gateway) {
+      String encodedClientToken = gateway.clientToken().generate();
+      String clientToken = TestHelper.decodeClientToken(encodedClientToken);
+      String payload = new StringBuilder()
+          .append("{\n")
+            .append("\"type\": \"plaid_public_token\",\n")
+            .append("\"public_token\": \"good\",\n")
+            .append("\"account_id\": \"plaid_account_id\",\n")
+            .append("\"billing_address\": {\n")
+                .append("\"street_address\": \"123 Ave\",\n")
+                .append("\"region\": \"CA\",\n")
+                .append("\"locality\": \"San Francisco\",\n")
+                .append("\"postal_code\": \"94112\"\n")
+            .append("},\n")
+            .append("\"ownership_type\": \"personal\",\n")
+            .append("\"first_name\": \"Dan\",\n")
+            .append("\"last_name\": \"Schulman\",\n")
+            .append("\"ach_mandate\": {\n")
+                .append("\"text\": \"cl mandate text\"\n")
+            .append("}\n")
+          .append("}")
+        .toString();
+
+        String nonce = "";
+        try {
+            Map<String, Object> json = JSON.std.mapFrom(clientToken);
+            URL url = new URL(((Map) json.get("braintree_api")).get("url") + "/tokens");
+            String token = (String) ((Map) json.get("braintree_api")).get("access_token");
+            SSLContext sc = SSLContext.getInstance("TLSv1.2");
+            sc.init(null, null, null);
+            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+            connection.setSSLSocketFactory(sc.getSocketFactory());
+            connection.setRequestMethod("POST");
+            connection.addRequestProperty("Content-Type", "application/json");
+            connection.addRequestProperty("Braintree-Version", "2016-10-07");
+            connection.addRequestProperty("Authorization", "Bearer " + token);
+            connection.setDoOutput(true);
+            connection.getOutputStream().write(payload.getBytes("UTF-8"));
+            connection.getOutputStream().close();
+
+            InputStream responseStream = connection.getInputStream();
+            String body = StringUtils.inputStreamToString(responseStream);
+            responseStream.close();
+            Map<String, Object> responseJson  = JSON.std.mapFrom(body);
+            nonce = (String) ((Map) responseJson.get("data")).get("id");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return nonce;
+    }
+
+    public static String generateInvalidUsBankAccountNonce() {
+        String valid_characters = "bcdfghjkmnpqrstvwxyz23456789";
+        String token = "tokenusbankacct";
+        for(int i=0; i < 4; i++) {
+            token += '_';
+            for(int j=0; j<6; j++) {
+                Integer pick = new Random().nextInt(valid_characters.length());
+                token += valid_characters.charAt(pick);
+            }
+        }
+        return token + "_xxx";
     }
 }

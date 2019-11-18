@@ -2,14 +2,14 @@ package com.braintreegateway.integrationtest;
 
 import com.braintreegateway.*;
 import com.braintreegateway.exceptions.ForgedQueryStringException;
+import com.braintreegateway.test.Nonce;
 import com.braintreegateway.exceptions.NotFoundException;
 import com.braintreegateway.test.CreditCardDefaults;
 import com.braintreegateway.test.CreditCardNumbers;
 import com.braintreegateway.test.VenmoSdk;
 import com.braintreegateway.testhelpers.MerchantAccountTestConstants;
 import com.braintreegateway.testhelpers.TestHelper;
-import com.braintreegateway.testhelpers.HttpHelper;
-import com.braintreegateway.util.QueryString;
+import com.braintreegateway.SandboxValues.CreditCardNumber;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -352,7 +352,7 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
         assertTrue(result.isSuccess());
         CreditCard card = result.getTarget();
         assertEquals("411111", card.getBin());
-        assertTrue(card.isVenmoSdk());
+        assertFalse(card.isVenmoSdk());
     }
 
     @Test
@@ -365,6 +365,35 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
         Result<CreditCard> result = gateway.creditCard().create(request);
         assertTrue(result.isSuccess());
     }
+
+    @Test
+    public void createWithThreeDSecureNonce() {
+        Customer customer = gateway.customer().create(new CustomerRequest()).getTarget();
+        CreditCardRequest request = new CreditCardRequest().
+            customerId(customer.getId()).
+            paymentMethodNonce(Nonce.ThreeDSecureVisaFullAuthentication).
+            options().
+                verifyCard(true).
+                done();
+
+        Result<CreditCard> result = gateway.creditCard().create(request);
+        assertTrue(result.isSuccess());
+
+        CreditCard creditCard = (CreditCard)result.getTarget();
+
+        ThreeDSecureInfo threeDSecureInfo = creditCard.getVerification().getThreeDSecureInfo();
+
+        assertEquals("authenticate_successful", threeDSecureInfo.getStatus());
+        assertEquals("Y", threeDSecureInfo.getEnrolled());
+        assertEquals(true, threeDSecureInfo.isLiabilityShifted());
+        assertEquals(true, threeDSecureInfo.isLiabilityShiftPossible());
+        assertEquals("cavv_value", threeDSecureInfo.getCAVV());
+        assertEquals("05", threeDSecureInfo.getECIFlag());
+        assertEquals("xid_value", threeDSecureInfo.getXID());
+        assertEquals("1.0.2", threeDSecureInfo.getThreeDSecureVersion());
+        assertEquals((String)null, threeDSecureInfo.getDsTransactionId());
+    }
+
 
     @Test
     public void createWithInvalidVenmoSdkPaymentMethodCode() {
@@ -398,7 +427,7 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
         assertTrue(result.isSuccess());
         CreditCard card = result.getTarget();
         assertEquals("510510", card.getBin());
-        assertTrue(card.isVenmoSdk());
+        assertFalse(card.isVenmoSdk());
     }
 
     @Test
@@ -747,6 +776,60 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
     }
 
     @Test
+    public void updateWithAccountTypeCredit() {
+        Customer customer = gateway.customer().create(new CustomerRequest()).getTarget();
+        CreditCardRequest request = new CreditCardRequest().
+            customerId(customer.getId()).
+            number("5105105105105100").
+            expirationDate("05/12").
+            billingAddress().
+                firstName("John").
+                done();
+
+        CreditCard creditCard = gateway.creditCard().create(request).getTarget();
+
+        CreditCardRequest updateRequest = new CreditCardRequest().
+            number(CreditCardNumber.HIPER.number).
+            expirationDate("01/20").
+            options().
+                verifyCard(true).
+                verificationMerchantAccountId("hiper_brl").
+                verificationAccountType("credit").
+                done();
+
+        CreditCard updatedCreditCard = gateway.creditCard().update(creditCard.getToken(), updateRequest).getTarget();
+
+        assertEquals("credit", updatedCreditCard.getVerification().getCreditCard().getAccountType());
+    }
+
+    @Test
+    public void updateWithAccountTypeDebit() {
+        Customer customer = gateway.customer().create(new CustomerRequest()).getTarget();
+        CreditCardRequest request = new CreditCardRequest().
+            customerId(customer.getId()).
+            number("5105105105105100").
+            expirationDate("05/12").
+            billingAddress().
+                firstName("John").
+                done();
+
+        CreditCard creditCard = gateway.creditCard().create(request).getTarget();
+
+        CreditCardRequest updateRequest = new CreditCardRequest().
+            number(CreditCardNumber.HIPER.number).
+            expirationDate("01/20").
+            options().
+                verifyCard(true).
+                verificationMerchantAccountId("hiper_brl").
+                verificationAccountType("debit").
+                done();
+
+        CreditCard updatedCreditCard = gateway.creditCard().update(creditCard.getToken(), updateRequest).getTarget();
+
+        assertEquals("debit", updatedCreditCard.getVerification().getCreditCard().getAccountType());
+    }
+
+    @Test
     public void find() {
         Customer customer = gateway.customer().create(new CustomerRequest()).getTarget();
         CreditCardRequest request = new CreditCardRequest().
@@ -864,8 +947,8 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
         }
     }
 
-    @Test
-    public void forward() {
+    @Test(expected=NotFoundException.class)
+    public void forwardRaisesException() {
         BraintreeGateway forwardGateway = new BraintreeGateway(
             Environment.DEVELOPMENT,
             "forward_payment_method_merchant_id",
@@ -889,15 +972,9 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
             .receivingMerchantId("integration_merchant_id");
         Result<PaymentMethodNonce> forwardResult = forwardGateway.creditCard()
             .forward(forwardRequest);
-
-        assertTrue(forwardResult.isSuccess());
-        PaymentMethodNonce nonce = forwardResult.getTarget();
-        assertTrue(nonce.getPublicId().matches("\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}"));
-        assertFalse(nonce.isLocked());
-        assertFalse(nonce.isConsumed());
     }
 
-    @Test
+    @Test(expected=NotFoundException.class)
     public void forwardInvalidToken() {
         BraintreeGateway forwardGateway = new BraintreeGateway(
             Environment.DEVELOPMENT,
@@ -906,18 +983,14 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
             "forward_payment_method_private_key"
         );
 
-        try {
-            PaymentMethodForwardRequest forwardRequest = new PaymentMethodForwardRequest()
-                .token("invalid")
-                .receivingMerchantId("integration_merchant_id");
-            Result<PaymentMethodNonce> forwardResult = forwardGateway.creditCard()
-                .forward(forwardRequest);
-            fail();
-        } catch (NotFoundException e) {
-        }
+        PaymentMethodForwardRequest forwardRequest = new PaymentMethodForwardRequest()
+            .token("invalid")
+            .receivingMerchantId("integration_merchant_id");
+        Result<PaymentMethodNonce> forwardResult = forwardGateway.creditCard()
+            .forward(forwardRequest);
     }
 
-    @Test
+    @Test(expected=NotFoundException.class)
     public void forwardInvalidReceivingMerchantId() {
         BraintreeGateway forwardGateway = new BraintreeGateway(
             Environment.DEVELOPMENT,
@@ -937,15 +1010,11 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
         assertTrue(createResult.isSuccess());
         CreditCard card = createResult.getTarget();
 
-        try {
-            PaymentMethodForwardRequest forwardRequest = new PaymentMethodForwardRequest()
-                .token(card.getToken())
-                .receivingMerchantId("invalid_merchant_id");
-            Result<PaymentMethodNonce> forwardResult = forwardGateway.creditCard()
-                .forward(forwardRequest);
-            fail();
-        } catch (NotFoundException e) {
-        }
+        PaymentMethodForwardRequest forwardRequest = new PaymentMethodForwardRequest()
+            .token(card.getToken())
+            .receivingMerchantId("invalid_merchant_id");
+        Result<PaymentMethodNonce> forwardResult = forwardGateway.creditCard()
+            .forward(forwardRequest);
     }
 
     @Test
@@ -1034,6 +1103,7 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
 
     @Test
     public void verifyValidCreditCardWithVerificationWithRiskData() {
+        createAdvancedFraudMerchantGateway();
         Customer customer = gateway.customer().create(new CustomerRequest()).getTarget();
         CreditCardRequest request = new CreditCardRequest().
             customerId(customer.getId()).
@@ -1041,6 +1111,7 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
             cvv("123").
             number("4111111111111111").
             expirationDate("05/12").
+            deviceSessionId("abc123").
             options().
                 verifyCard(true).
                 done();
@@ -1057,7 +1128,10 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
         RiskData riskData = verification.getRiskData();
         assertNotNull(riskData);
 
-        assertNotNull(riskData.getDecision());
+        assertEquals("Approve", riskData.getDecision());
+        assertFalse(riskData.getDeviceDataCaptured());
+        assertNotNull(riskData.getId());
+        assertNotNull(riskData.getFraudServiceProvider());
     }
 
     @Test
@@ -1137,6 +1211,87 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
         CreditCardVerification verification = result.getCreditCardVerification();
 
         assertEquals(Transaction.GatewayRejectionReason.CVV, verification.getGatewayRejectionReason());
+    }
+
+    @Test
+    public void verifyCreditCardAccountTypeCredit() {
+        Customer customer = gateway.customer().create(new CustomerRequest()).getTarget();
+        CreditCardRequest request = new CreditCardRequest().
+            customerId(customer.getId()).
+            cardholderName("John Doe").
+            cvv("123").
+            number(CreditCardNumber.HIPER.number).
+            expirationDate("05/12").
+            options().
+                verifyCard(true).
+                verificationMerchantAccountId("hiper_brl").
+                verificationAccountType("credit").
+                done();
+
+        Result<CreditCard> result = gateway.creditCard().create(request);
+        assertTrue(result.isSuccess());
+        assertEquals("credit", result.getTarget().getVerification().getCreditCard().getAccountType());
+    }
+
+    @Test
+    public void verifyCreditCardAccountTypeDebit() {
+        Customer customer = gateway.customer().create(new CustomerRequest()).getTarget();
+        CreditCardRequest request = new CreditCardRequest().
+            customerId(customer.getId()).
+            cardholderName("John Doe").
+            cvv("123").
+            number(CreditCardNumber.HIPER.number).
+            expirationDate("05/12").
+            options().
+                verifyCard(true).
+                verificationMerchantAccountId("hiper_brl").
+                verificationAccountType("debit").
+                done();
+
+        Result<CreditCard> result = gateway.creditCard().create(request);
+        assertTrue(result.isSuccess());
+        assertEquals("debit", result.getTarget().getVerification().getCreditCard().getAccountType());
+    }
+
+    @Test
+    public void verifyCreditCardWithErrorAccountTypeIsInvalid() {
+        Customer customer = gateway.customer().create(new CustomerRequest()).getTarget();
+        CreditCardRequest request = new CreditCardRequest().
+            customerId(customer.getId()).
+            cardholderName("John Doe").
+            cvv("123").
+            number(CreditCardNumber.HIPER.number).
+            expirationDate("05/12").
+            options().
+                verifyCard(true).
+                verificationMerchantAccountId("hiper_brl").
+                verificationAccountType("ach").
+                done();
+
+        Result<CreditCard> result = gateway.creditCard().create(request);
+        assertFalse(result.isSuccess());
+        assertEquals(ValidationErrorCode.CREDIT_CARD_OPTIONS_VERIFICATION_ACCOUNT_TYPE_IS_INVALID,
+                result.getErrors().forObject("credit-card").forObject("options").onField("verification-account-type").get(0).getCode());
+    }
+
+    @Test
+    public void verifyCreditCardWithErrorAccountTypeNotSupported() {
+        Customer customer = gateway.customer().create(new CustomerRequest()).getTarget();
+        CreditCardRequest request = new CreditCardRequest().
+            customerId(customer.getId()).
+            cardholderName("John Doe").
+            cvv("123").
+            number(CreditCardNumber.VISA.number).
+            expirationDate("05/12").
+            options().
+                verifyCard(true).
+                verificationAccountType("credit").
+                done();
+
+        Result<CreditCard> result = gateway.creditCard().create(request);
+        assertFalse(result.isSuccess());
+        assertEquals(ValidationErrorCode.CREDIT_CARD_OPTIONS_VERIFICATION_ACCOUNT_TYPE_NOT_SUPPORTED,
+                result.getErrors().forObject("credit-card").forObject("options").onField("verification-account-type").get(0).getCode());
     }
 
     @Test
@@ -1244,6 +1399,7 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
         CreditCard card = result.getTarget();
 
         assertEquals(CreditCard.Healthcare.YES, card.getHealthcare());
+        assertEquals("J3", card.getProductId());
     }
 
     @Test
@@ -1262,6 +1418,7 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
         CreditCard card = result.getTarget();
 
         assertEquals(CreditCard.Payroll.YES, card.getPayroll());
+        assertEquals("MSA", card.getProductId());
     }
 
     @Test
@@ -1339,6 +1496,7 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
         assertEquals(CreditCard.Healthcare.NO, card.getHealthcare());
         assertEquals(CreditCard.Payroll.NO, card.getPayroll());
         assertEquals(CreditCard.Prepaid.NO, card.getPrepaid());
+        assertEquals("MSB", card.getProductId());
     }
 
 
@@ -1365,5 +1523,6 @@ public class CreditCardIT extends IntegrationTest implements MerchantAccountTest
         assertEquals(CreditCard.Prepaid.UNKNOWN, card.getPrepaid());
         assertEquals("Unknown", card.getCountryOfIssuance());
         assertEquals("Unknown", card.getIssuingBank());
+        assertEquals("Unknown", card.getProductId());
     }
 }

@@ -3,10 +3,12 @@ package com.braintreegateway.integrationtest;
 import com.braintreegateway.*;
 import com.braintreegateway.testhelpers.TestHelper;
 import com.braintreegateway.SandboxValues.CreditCardNumber;
+import com.braintreegateway.SandboxValues.FailsVerification;
 import com.braintreegateway.util.NodeWrapper;
 import com.braintreegateway.util.NodeWrapperFactory;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -46,6 +48,80 @@ public class CreditCardVerificationIT extends IntegrationTest {
         assertTrue(result.isSuccess());
         CreditCardVerification verification = result.getTarget();
         assertEquals(verification.getBillingAddress().getPostalCode(), "60606");
+        assertEquals("1000", verification.getProcessorResponseCode());
+        assertEquals("Approved", verification.getProcessorResponseText());
+        assertEquals(ProcessorResponseType.APPROVED, verification.getProcessorResponseType());
+    }
+
+    @Test
+    public void createVerificationNetworkResponseCodeText() {
+        CreditCardVerificationRequest request = new CreditCardVerificationRequest().
+            creditCard().
+                number(CreditCardNumber.VISA.number).
+                expirationDate("05/2009").
+                cvv("123").
+                billingAddress().
+                    company("Braintree").
+                    countryCodeAlpha2("US").
+                    countryCodeAlpha3("USA").
+                    countryCodeNumeric("840").
+                    countryName("United States of America").
+                    extendedAddress("Unit B").
+                    firstName("John").
+                    lastName("Smith").
+                    locality("San Francisco").
+                    postalCode("60606").
+                    region("CA").
+                    streetAddress("123 Townsend St").
+                    done().
+                done().
+            options().
+                amount("5.00").
+                done();
+
+        Result<CreditCardVerification> result = gateway.creditCardVerification().create(request);
+        assertTrue(result.isSuccess());
+        CreditCardVerification verification = result.getTarget();
+        assertEquals("1000", verification.getProcessorResponseCode());
+        assertEquals("Approved", verification.getProcessorResponseText());
+        assertEquals(ProcessorResponseType.APPROVED, verification.getProcessorResponseType());
+        assertEquals("XX", verification.getNetworkResponseCode());
+        assertEquals("sample network response text", verification.getNetworkResponseText());
+    }
+
+    @Test
+    public void createVerificationDeclined() {
+        CreditCardVerificationRequest request = new CreditCardVerificationRequest().
+            creditCard().
+                number(FailsVerification.MASTER_CARD.number).
+                expirationDate("05/2009").
+                cvv("123").
+                billingAddress().
+                    company("Braintree").
+                    countryCodeAlpha2("US").
+                    countryCodeAlpha3("USA").
+                    countryCodeNumeric("840").
+                    countryName("United States of America").
+                    extendedAddress("Unit B").
+                    firstName("John").
+                    lastName("Smith").
+                    locality("San Francisco").
+                    postalCode("60606").
+                    region("CA").
+                    streetAddress("123 Townsend St").
+                    done().
+                done().
+            options().
+                amount("5.00").
+                done();
+
+        Result<CreditCardVerification> result = gateway.creditCardVerification().create(request);
+        assertFalse(result.isSuccess());
+        CreditCardVerification verification = result.getCreditCardVerification();
+        assertEquals(verification.getBillingAddress().getPostalCode(), "60606");
+        assertEquals("2000", verification.getProcessorResponseCode());
+        assertEquals("Do Not Honor", verification.getProcessorResponseText());
+        assertEquals(ProcessorResponseType.SOFT_DECLINED, verification.getProcessorResponseType());
     }
 
     @Test
@@ -86,11 +162,54 @@ public class CreditCardVerificationIT extends IntegrationTest {
     }
 
     @Test
+    public void createVerificationWithExternalVaultAndRiskData() {
+        CreditCardVerificationRequest request = new CreditCardVerificationRequest().
+            creditCard().
+                number(CreditCardNumber.VISA.number).
+                expirationDate("05/2009").
+                cvv("123").
+                billingAddress().
+                    company("Braintree").
+                    countryCodeAlpha2("US").
+                    countryCodeAlpha3("USA").
+                    countryCodeNumeric("840").
+                    countryName("United States of America").
+                    extendedAddress("Unit B").
+                    firstName("John").
+                    lastName("Smith").
+                    locality("San Francisco").
+                    postalCode("60606").
+                    region("CA").
+                    streetAddress("123 Townsend St").
+                    done().
+                done().
+            options().
+                amount("5.00").
+                done().
+            externalVault().
+                previousNetworkTransactionId("previousTransactionId").
+                willVault().
+                done().
+            riskData().
+                customerBrowser("customer-browser-user-agent").
+                customerIP("127.0.0.1").
+                done();
+
+
+        TestHelper.assertIncludes("previousTransactionId", request.toXML());
+        TestHelper.assertIncludes("will_vault", request.toXML());
+        TestHelper.assertIncludes("customer-browser-user-agent", request.toXML());
+        TestHelper.assertIncludes("127.0.0.1", request.toXML());
+    }
+
+    @Test
     public void constructFromResponse() {
         StringBuilder builder = new StringBuilder();
         builder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         builder.append("<api-error-response>");
         builder.append("  <verification>");
+        builder.append("    <amount>1.00</amount>");
+        builder.append("    <currency-iso-code>USD</currency-iso-code>");
         builder.append("    <avs-error-response-code nil=\"true\"></avs-error-response-code>");
         builder.append("    <avs-postal-code-response-code>I</avs-postal-code-response-code>");
         builder.append("    <status>processor_declined</status>");
@@ -116,6 +235,8 @@ public class CreditCardVerificationIT extends IntegrationTest {
 
         NodeWrapper verificationNode = (NodeWrapperFactory.instance.create(builder.toString())).findFirst("verification");
         CreditCardVerification verification = new CreditCardVerification(verificationNode);
+        assertEquals(new BigDecimal("1.00"), verification.getAmount());
+        assertEquals("USD", verification.getCurrencyIsoCode());
         assertEquals(null, verification.getAvsErrorResponseCode());
         assertEquals("I", verification.getAvsPostalCodeResponseCode());
         assertEquals(CreditCardVerification.Status.PROCESSOR_DECLINED, verification.getStatus());
@@ -298,5 +419,99 @@ public class CreditCardVerificationIT extends IntegrationTest {
         assertEquals(CreditCard.Prepaid.UNKNOWN, verification.getCreditCard().getPrepaid());
         assertEquals("Unknown", verification.getCreditCard().getCountryOfIssuance());
         assertEquals("Unknown", verification.getCreditCard().getIssuingBank());
+        assertEquals("Unknown", verification.getCreditCard().getProductId());
+    }
+
+    @Test
+    public void createVerificationWithAccountTypeCredit() {
+        CreditCardVerificationRequest request = new CreditCardVerificationRequest().
+            creditCard().
+                number(CreditCardNumber.HIPER.number).
+                expirationDate("05/2009").
+                cvv("123").
+                done().
+            options().
+                amount("5.00").
+                merchantAccountId("hiper_brl").
+                accountType("credit").
+                done();
+
+        Result<CreditCardVerification> result = gateway.creditCardVerification().create(request);
+        assertTrue(result.isSuccess());
+        CreditCardVerification verification = result.getTarget();
+        assertEquals("1000", verification.getProcessorResponseCode());
+        assertEquals("Approved", verification.getProcessorResponseText());
+        assertEquals("credit", verification.getCreditCard().getAccountType());
+    }
+
+    @Test
+    public void createVerificationWithAccountTypeDebit() {
+        CreditCardVerificationRequest request = new CreditCardVerificationRequest().
+            creditCard().
+                number(CreditCardNumber.HIPER.number).
+                expirationDate("05/2009").
+                cvv("123").
+                done().
+            options().
+                amount("5.00").
+                merchantAccountId("hiper_brl").
+                accountType("debit").
+                done();
+
+        Result<CreditCardVerification> result = gateway.creditCardVerification().create(request);
+        assertTrue(result.isSuccess());
+        CreditCardVerification verification = result.getTarget();
+        assertEquals("1000", verification.getProcessorResponseCode());
+        assertEquals("Approved", verification.getProcessorResponseText());
+        assertEquals("debit", verification.getCreditCard().getAccountType());
+    }
+
+    @Test
+    public void createVerificationWithErrorAccountTypeIsInvalid() {
+        CreditCardVerificationRequest request = new CreditCardVerificationRequest().
+            creditCard().
+                number(CreditCardNumber.HIPER.number).
+                expirationDate("05/2009").
+                cvv("123").
+                done().
+            options().
+                amount("5.00").
+                merchantAccountId("hiper_brl").
+                accountType("ach").
+                done();
+
+        Result<CreditCardVerification> result = gateway.creditCardVerification().create(request);
+        assertFalse(result.isSuccess());
+        assertEquals(ValidationErrorCode.VERIFICATION_OPTIONS_ACCOUNT_TYPE_IS_INVALID,
+                result.getErrors().
+                    forObject("verification").
+                    forObject("options").
+                    onField("account-type").
+                    get(0).
+                    getCode());
+    }
+
+    @Test
+    public void createVerificationWithErrorAccountTypeNotSupported() {
+        CreditCardVerificationRequest request = new CreditCardVerificationRequest().
+            creditCard().
+                number(CreditCardNumber.VISA.number).
+                expirationDate("05/2009").
+                cvv("123").
+                done().
+            options().
+                amount("5.00").
+                accountType("credit").
+                done();
+
+        Result<CreditCardVerification> result = gateway.creditCardVerification().create(request);
+        assertFalse(result.isSuccess());
+        assertEquals(ValidationErrorCode.VERIFICATION_OPTIONS_ACCOUNT_TYPE_NOT_SUPPORTED,
+                result.getErrors().
+                    forObject("verification").
+                    forObject("options").
+                    onField("account-type").
+                    get(0).
+                    getCode());
     }
 }

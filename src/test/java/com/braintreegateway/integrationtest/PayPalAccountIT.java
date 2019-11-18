@@ -35,6 +35,7 @@ public class PayPalAccountIT extends IntegrationTest {
         assertNotNull(found.getUpdatedAt());
         assertNotNull(found.isDefault());
         assertNotNull(found.getEmail());
+        assertNull(found.getRevokedAt());
     }
 
     @Test
@@ -57,6 +58,7 @@ public class PayPalAccountIT extends IntegrationTest {
         assertNotNull(found);
         assertEquals(found.getToken(), result.getTarget().getToken());
         assertNotNull(found.getImageUrl());
+        assertNotNull(found.getPayerId());
         assertNotNull(found.getCreatedAt());
         assertNotNull(found.getUpdatedAt());
         assertNotNull(found.isDefault());

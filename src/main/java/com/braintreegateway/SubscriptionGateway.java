@@ -19,7 +19,7 @@ import java.util.List;
  * gateway.subscription().create(...)
  * </pre>
  *
- * For more detailed information on {@link Subscription Subscriptions}, see <a href="http://www.braintreepayments.com/gateway/subscription-api" target="_blank">http://www.braintreepaymentsolutions.com/gateway/subscription-api</a>
+ * For more detailed information on {@link Subscription Subscriptions}, see <a href="https://developers.braintreepayments.com/reference/response/subscription/java" target="_blank">https://developers.braintreepayments.com/reference/response/subscription/java</a>
  */
 public class SubscriptionGateway {
 
@@ -114,5 +114,20 @@ public class SubscriptionGateway {
         return retryCharge(new SubscriptionTransactionRequest().
           subscriptionId(subscriptionId).
           amount(amount));
-     }
+    }
+
+    public Result<Transaction> retryCharge(String subscriptionId, Boolean submitForSettlement) {
+        return retryCharge(new SubscriptionTransactionRequest().
+          subscriptionId(subscriptionId)
+          .options()
+            .submitForSettlement(submitForSettlement).done());
+    }
+
+    public Result<Transaction> retryCharge(String subscriptionId, BigDecimal amount, Boolean submitForSettlement) {
+        return retryCharge(new SubscriptionTransactionRequest().
+          subscriptionId(subscriptionId).
+          amount(amount).
+          options().
+            submitForSettlement(submitForSettlement).done());
+    }
 }

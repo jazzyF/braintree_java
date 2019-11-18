@@ -10,6 +10,9 @@ public class OAuthConnectUrlRequest extends Request {
     private String clientId;
     private String state;
     private String redirectUri;
+    private String landingPage;
+    private Boolean loginOnly;
+    private Boolean signupOnly;
     private String[] paymentMethods = new String[0];
 
     private OAuthConnectUrlUserRequest user;
@@ -33,6 +36,27 @@ public class OAuthConnectUrlRequest extends Request {
     public OAuthConnectUrlRequest state(String state) {
         this.state = state;
         return this;
+    }
+
+    public OAuthConnectUrlRequest landingPage(String landingPage) {
+        this.landingPage = landingPage;
+        return this;
+    }
+
+    public OAuthConnectUrlRequest loginOnly(Boolean loginOnly) {
+        this.loginOnly = loginOnly;
+        return this;
+    }
+
+    public OAuthConnectUrlRequest signupOnly(Boolean signupOnly) {
+        this.signupOnly = signupOnly;
+        return this;
+    }
+
+    private Boolean isSignupOnly() {
+        if (this.signupOnly == null) { return false; }
+        if (this.loginOnly == null) { return this.signupOnly; }
+        return this.signupOnly && !this.loginOnly;
     }
 
     public OAuthConnectUrlRequest redirectUri(String redirectUri) {
@@ -62,13 +86,19 @@ public class OAuthConnectUrlRequest extends Request {
             addTopLevelElement("scope", scope).
             addTopLevelElement("clientId", clientId).
             addTopLevelElement("state", state).
-            addTopLevelElement("redirectUri", redirectUri);
+            addTopLevelElement("redirectUri", redirectUri).
+            addTopLevelElement("landingPage", landingPage).
+            addTopLevelElement("loginOnly", String.valueOf(loginOnly));
 
-            for (String paymentMethod : paymentMethods) {
-                builder.addTopLevelElement("payment_methods[]", paymentMethod);
-            }
+        if (isSignupOnly()) {
+            builder.addTopLevelElement("signupOnly", "true");
+        }
 
-            builder.addElement("user", user).
+        for (String paymentMethod : paymentMethods) {
+            builder.addTopLevelElement("payment_methods[]", paymentMethod);
+        }
+
+        builder.addElement("user", user).
             addElement("business", business);
 
         return builder.toQueryString();

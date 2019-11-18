@@ -2,6 +2,7 @@ package com.braintreegateway;
 
 import com.braintreegateway.util.Http;
 import com.braintreegateway.util.NodeWrapper;
+import com.braintreegateway.util.PaymentMethodParser;
 import com.braintreegateway.exceptions.NotFoundException;
 
 public class PaymentMethodGateway {
@@ -28,6 +29,11 @@ public class PaymentMethodGateway {
         return new Result<UnknownPaymentMethod>();
     }
 
+    public Result<? extends PaymentMethod> delete(String token, PaymentMethodDeleteRequest request) {
+        http.delete(configuration.getMerchantPath() + "/payment_methods/any/" + token + "?" + request.toQueryString());
+        return new Result<UnknownPaymentMethod>();
+    }
+
     public PaymentMethod find(String token) {
         if(token == null || token.trim().equals(""))
             throw new NotFoundException();
@@ -43,31 +49,20 @@ public class PaymentMethodGateway {
         return new Result<PaymentMethodNonce>(response, PaymentMethodNonce.class);
     }
 
-    public NodeWrapper revoke(String token) {
-        String request = new RequestBuilder("payment-method").addElement("shared-payment-method-token", token).toXML();
+    public Result<PaymentMethodNonce> grant(String token, PaymentMethodGrantRequest grantRequest) {
+        String request = grantRequest.sharedPaymentMethodToken(token).toXML();
+        NodeWrapper response = http.post(configuration.getMerchantPath() + "/payment_methods/grant", request);
+        return new Result<PaymentMethodNonce>(response, PaymentMethodNonce.class);
+    }
+
+    public Result<? extends PaymentMethod> revoke(String token) {
+        PaymentMethodGrantRevokeRequest revokeRequest = new PaymentMethodGrantRevokeRequest();
+        String request = revokeRequest.sharedPaymentMethodToken(token).toXML();
         NodeWrapper response = http.post(configuration.getMerchantPath() + "/payment_methods/revoke", request);
-        return response;
+        return parseResponse(response);
     }
 
     public Result<? extends PaymentMethod> parseResponse(NodeWrapper response) {
-        if (response.getElementName() == "paypal-account") {
-            return new Result<PayPalAccount>(response, PayPalAccount.class);
-        } else if (response.getElementName() == "credit-card") {
-            return new Result<CreditCard>(response, CreditCard.class);
-        } else if (response.getElementName() == "europe-bank-account") {
-            return new Result<EuropeBankAccount>(response, EuropeBankAccount.class);
-        } else if (response.getElementName() == "apple-pay-card") {
-            return new Result<ApplePayCard>(response, ApplePayCard.class);
-        } else if (response.getElementName() == "android-pay-card") {
-            return new Result<AndroidPayCard>(response, AndroidPayCard.class);
-        } else if (response.getElementName() == "amex-express-checkout-card") {
-            return new Result<AmexExpressCheckoutCard>(response, AmexExpressCheckoutCard.class);
-        } else if (response.getElementName() == "coinbase-account") {
-            return new Result<CoinbaseAccount>(response, CoinbaseAccount.class);
-        } else if (response.getElementName() == "venmo-account") {
-            return new Result<VenmoAccount>(response, VenmoAccount.class);
-        } else {
-            return new Result<UnknownPaymentMethod>(response, UnknownPaymentMethod.class);
-        }
+        return PaymentMethodParser.parsePaymentMethod(response);
     }
 }

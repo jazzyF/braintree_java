@@ -11,10 +11,12 @@ public class PayPalAccount implements PaymentMethod {
     private String billingAgreementId;
     private boolean isDefault;
     private String imageUrl;
+    private String payerId;
     private String customerId;
     private Calendar createdAt;
     private Calendar updatedAt;
     private List<Subscription> subscriptions;
+    private Calendar revokedAt;
 
     public PayPalAccount(NodeWrapper node) {
         this.email = node.findString("email");
@@ -22,6 +24,7 @@ public class PayPalAccount implements PaymentMethod {
         this.billingAgreementId = node.findString("billing-agreement-id");
         this.isDefault = node.findBoolean("default");
         this.imageUrl = node.findString("image-url");
+        this.payerId = node.findString("payer-id");
         this.customerId = node.findString("customer-id");
         this.createdAt = node.findDateTime("created-at");
         this.updatedAt = node.findDateTime("updated-at");
@@ -29,6 +32,7 @@ public class PayPalAccount implements PaymentMethod {
         for (NodeWrapper subscriptionResponse : node.findAll("subscriptions/subscription")) {
             this.subscriptions.add(new Subscription(subscriptionResponse));
         }
+        this.revokedAt = node.findDateTime("revoked-at");
     }
 
     public String getEmail() {
@@ -51,6 +55,10 @@ public class PayPalAccount implements PaymentMethod {
         return imageUrl;
     }
 
+    public String getPayerId() {
+        return payerId;
+    }
+
     public String getCustomerId() {
         return customerId;
     }
@@ -65,5 +73,9 @@ public class PayPalAccount implements PaymentMethod {
 
     public List<Subscription> getSubscriptions() {
         return subscriptions;
+    }
+
+    public Calendar getRevokedAt() {
+        return revokedAt;
     }
 }

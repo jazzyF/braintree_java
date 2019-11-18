@@ -1,5 +1,7 @@
 package com.braintreegateway;
 
+import com.braintreegateway.test.TestingGateway;
+import com.braintreegateway.util.GraphQLClient;
 import com.braintreegateway.util.Http;
 import com.braintreegateway.util.TrUtil;
 
@@ -38,6 +40,7 @@ public class BraintreeGateway {
 
     private Configuration configuration;
     private Http http;
+    public GraphQLClient graphQLClient;
 
     /**
      * Instantiates a BraintreeGateway. Use the values provided by Braintree.
@@ -55,21 +58,25 @@ public class BraintreeGateway {
     public BraintreeGateway(Environment environment, String merchantId, String publicKey, String privateKey) {
         this.configuration = new Configuration(environment, merchantId, publicKey, privateKey);
         this.http = new Http(configuration);
+        this.graphQLClient = new GraphQLClient(configuration);
     }
 
     public BraintreeGateway(String environment, String merchantId, String publicKey, String privateKey) {
         this.configuration = new Configuration(environment, merchantId, publicKey, privateKey);
         this.http = new Http(configuration);
+        this.graphQLClient = new GraphQLClient(configuration);
     }
 
     public BraintreeGateway(String clientId, String clientSecret) {
         this.configuration = new Configuration(clientId, clientSecret);
         this.http = new Http(configuration);
+        this.graphQLClient = new GraphQLClient(configuration);
     }
 
     public BraintreeGateway(String accessToken) {
         this.configuration = new Configuration(accessToken);
         this.http = new Http(configuration);
+        this.graphQLClient = new GraphQLClient(configuration);
     }
 
     /**
@@ -84,6 +91,7 @@ public class BraintreeGateway {
      *            the public key provided by Braintree.
      * @param privateKey
      *            the private key provided by Braintree.
+     * @return a BraintreeGateway specifically for Partner usage
      */
     public static BraintreeGateway forPartner(Environment environment, String partnerId, String publicKey, String privateKey) {
         return new BraintreeGateway(environment, partnerId, publicKey, privateKey);
@@ -127,6 +135,10 @@ public class BraintreeGateway {
         return new CreditCardVerificationGateway(http, configuration);
     }
 
+    public UsBankAccountVerificationGateway usBankAccountVerification() {
+        return new UsBankAccountVerificationGateway(http, configuration);
+    }
+
     /**
      * Returns an {@link CustomerGateway} for interacting with {@link Customer}
      * objects.
@@ -147,6 +159,16 @@ public class BraintreeGateway {
         return new DiscountGateway(http, configuration);
     }
 
+    /**
+     * Returns a {@link DisputeGateway} for interacting with {@link Dispute}
+     * objects.
+     *
+     * @return an {@link DisputeGateway}.
+     */
+    public DisputeGateway dispute() {
+        return new DisputeGateway(http, configuration);
+    }
+
     public Configuration getConfiguration() {
         return configuration;
     }
@@ -165,6 +187,18 @@ public class BraintreeGateway {
 
     public PayPalAccountGateway paypalAccount() {
         return new PayPalAccountGateway(http, configuration);
+    }
+
+    public UsBankAccountGateway usBankAccount() {
+        return new UsBankAccountGateway(this, http, configuration);
+    }
+
+    // NEXT_MAJOR_VERSION Remove this class as legacy Ideal has been removed/disabled in the Braintree Gateway
+    /**
+     * @deprecated If you're looking to accept iDEAL as a payment method contact us at accounts@braintreepayments.com for a solution.
+     */
+    public IdealPaymentGateway idealPayment() {
+        return new IdealPaymentGateway(this, http, configuration);
     }
 
     /**
@@ -191,6 +225,15 @@ public class BraintreeGateway {
     }
 
     /**
+     * Returns an {@link ThreeDSecureGateway} for interacting with 3D Secure.
+     *
+     * @return an {@link ThreeDSecureGateway}.
+     */
+    public ThreeDSecureGateway threeDSecure() {
+        return new ThreeDSecureGateway(configuration);
+    }
+
+    /**
      * Returns an {@link TransactionGateway} for interacting with
      * {@link Transaction} objects.
      *
@@ -198,6 +241,16 @@ public class BraintreeGateway {
      */
     public TransactionGateway transaction() {
         return new TransactionGateway(http, configuration);
+    }
+
+    /**
+     * Returns an {@link TransactionLineItemGateway} for interacting with
+     * {@link TransactionLineItem} objects.
+     *
+     * @return an {@link TransactionLineItemGateway}.
+     */
+    public TransactionLineItemGateway transactionLineItem() {
+        return new TransactionLineItemGateway(http, configuration);
     }
 
     public TransparentRedirectGateway transparentRedirect() {
@@ -247,5 +300,13 @@ public class BraintreeGateway {
 
     public TestingGateway testing() {
         return new TestingGateway(http, configuration);
+    }
+
+    public DocumentUploadGateway documentUpload() {
+        return new DocumentUploadGateway(http, configuration);
+    }
+
+    public ReportGateway report() {
+        return new ReportGateway(http, graphQLClient, configuration);
     }
 }

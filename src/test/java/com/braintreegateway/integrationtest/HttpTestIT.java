@@ -1,65 +1,45 @@
 package com.braintreegateway.integrationtest;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.OutputStream;
+import java.net.URL;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.logging.StreamHandler;
+
 import com.braintreegateway.BraintreeGateway;
 import com.braintreegateway.Configuration;
 import com.braintreegateway.CreditCard;
 import com.braintreegateway.CreditCardRequest;
 import com.braintreegateway.Customer;
 import com.braintreegateway.CustomerRequest;
+import com.braintreegateway.DocumentUpload;
+import com.braintreegateway.DocumentUploadRequest;
 import com.braintreegateway.Environment;
+import com.braintreegateway.Result;
 import com.braintreegateway.exceptions.AuthenticationException;
 import com.braintreegateway.exceptions.DownForMaintenanceException;
 import com.braintreegateway.exceptions.UnexpectedException;
-import com.braintreegateway.exceptions.UpgradeRequiredException;
-import com.braintreegateway.org.apache.commons.codec.binary.Base64;
-import com.braintreegateway.Result;
-import com.braintreegateway.testhelpers.TestHelper;
+import com.braintreegateway.exceptions.ServerException;
 import com.braintreegateway.util.Http;
 import com.braintreegateway.util.NodeWrapper;
-import com.braintreegateway.util.StringUtils;
 
-import org.junit.Before;
 import org.junit.Test;
 
-import java.util.logging.StreamHandler;
-import java.util.logging.Logger;
-import java.util.logging.Level;
-import java.util.logging.Handler;
-import java.io.OutputStream;
-import java.io.IOException;
-import java.io.FileInputStream;
-import java.io.File;
-import java.io.ByteArrayOutputStream;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @SuppressWarnings("deprecation")
 public class HttpTestIT extends IntegrationTest {
 
-    private static OutputStream logCapturingStream;
-    private static StreamHandler customLogHandler;
-
-    public void attachLogCapturer()
-    {
-        Configuration configuration = this.gateway.getConfiguration();
-        Logger logger = configuration.getLogger();
-        logCapturingStream = new ByteArrayOutputStream();
-        Handler[] handlers = logger.getParent().getHandlers();
-        customLogHandler = new StreamHandler(logCapturingStream, handlers[0].getFormatter());
-        customLogHandler.setLevel(Level.FINE);
-        logger.addHandler(customLogHandler);
-    }
-
-    public String getTestCapturedLog()
-    {
-      customLogHandler.flush();
-      return logCapturingStream.toString();
-    }
-
     @Test
     public void smokeTestGet() {
         Configuration configuration = gateway.getConfiguration();
-        NodeWrapper node = new Http(configuration).get(configuration.getMerchantPath() + "/customers/131866");
+        NodeWrapper node = new Http(configuration).get(configuration.getMerchantPath() + "/customers/big_spender");
         assertNotNull(node.findString("first-name"));
     }
 
@@ -72,10 +52,21 @@ public class HttpTestIT extends IntegrationTest {
     }
 
     @Test
+    public void smokeTestPostMultipart() {
+        URL fileToUpload = getClass().getClassLoader().getResource("fixtures/bt_logo.png");
+        DocumentUploadRequest request = new DocumentUploadRequest(DocumentUpload.Kind.EVIDENCE_DOCUMENT,
+                                                                        new File(fileToUpload.getFile()));
+
+        Configuration configuration = gateway.getConfiguration();
+        NodeWrapper node = new Http(configuration).postMultipart(configuration.getMerchantPath() + "/document_uploads", request.getRequest(), request.getFile());
+        assertEquals("image/png", node.findString("content-type"));
+    }
+
+    @Test
     public void smokeTestPut() {
         CustomerRequest request = new CustomerRequest().firstName("NewName");
         Configuration configuration = gateway.getConfiguration();
-        NodeWrapper node = new Http(configuration).put(configuration.getMerchantPath() + "/customers/131866", request);
+        NodeWrapper node = new Http(configuration).put(configuration.getMerchantPath() + "/customers/big_spender", request);
         assertEquals("NewName", node.findString("first-name"));
     }
 
@@ -91,7 +82,7 @@ public class HttpTestIT extends IntegrationTest {
         Configuration configuration = gateway.getConfiguration();
         attachLogCapturer();
 
-        NodeWrapper node = new Http(configuration).get(configuration.getMerchantPath() + "/customers/131866");
+        NodeWrapper node = new Http(configuration).get(configuration.getMerchantPath() + "/customers/big_spender");
         String capturedLog = getTestCapturedLog();
 
         assertTrue(capturedLog.contains("[Braintree]"));
@@ -140,7 +131,7 @@ public class HttpTestIT extends IntegrationTest {
         try {
             Configuration configuration = this.gateway.getConfiguration();
             attachLogCapturer();
-            NodeWrapper node = new Http(configuration).get(configuration.getMerchantPath() + "/customers/131866");
+            NodeWrapper node = new Http(configuration).get(configuration.getMerchantPath() + "/customers/big_spender");
         } catch (UnexpectedException e) {
         } finally {
             capturedLog = getTestCapturedLog();
@@ -152,6 +143,23 @@ public class HttpTestIT extends IntegrationTest {
     public void authenticationException() {
         BraintreeGateway gateway = new BraintreeGateway(Environment.DEVELOPMENT, "integration_merchant_id", "bad_public_key", "bad_private_key");
         new Http(gateway.getConfiguration()).get("/");
+    }
+
+    @Test
+    public void sslCertificateSuccessfulInQA() {
+        try {
+            BraintreeGateway gateway = new BraintreeGateway(Environment.QA, "integration_merchant_id", "bad_public_key", "bad_private_key");
+            Http http = new Http(gateway.getConfiguration());
+            http.get("/");
+        } catch (AuthenticationException ex) {
+            // success
+        } catch (DownForMaintenanceException ex) {
+            // QA is down
+        } catch (ServerException ex) {
+            // QA is down
+        } catch (Exception ex) {
+            fail(ex.getMessage());
+        }
     }
 
     @Test(expected = AuthenticationException.class)
@@ -168,54 +176,6 @@ public class HttpTestIT extends IntegrationTest {
         http.get("/");
     }
 
-    @Test(expected = DownForMaintenanceException.class)
-    public void downForMaintenanceExceptionRaisedWhenAppInMaintenanceModeUsingServerToServer() {
-        CustomerRequest request = new CustomerRequest();
-        Configuration configuration = gateway.getConfiguration();
-        new Http(configuration).put(configuration.getMerchantPath() + "/test/maintenance", request);
-    }
-
-    @Test(expected = DownForMaintenanceException.class)
-    public void downForMaintenanceExceptionRaisedWhenAppInMaintenanceModeUsingTR() {
-        CustomerRequest request = new CustomerRequest();
-        CustomerRequest trParams = new CustomerRequest();
-        Configuration configuration = gateway.getConfiguration();
-        String queryString = TestHelper.simulateFormPostForTR(gateway, trParams, request, configuration.getBaseURL() + configuration.getMerchantPath() + "/test/maintenance");
-        gateway.customer().confirmTransparentRedirect(queryString);
-    }
-
-    @Test(expected = DownForMaintenanceException.class)
-    public void downForMaintenanceExceptionRaisedWhenAppInMaintenanceModeUsingNewTR() {
-        CustomerRequest request = new CustomerRequest();
-        CustomerRequest trParams = new CustomerRequest();
-        Configuration configuration = gateway.getConfiguration();
-        String queryString = TestHelper.simulateFormPostForTR(gateway, trParams, request, configuration.getBaseURL() + configuration.getMerchantPath() + "/test/maintenance");
-        gateway.transparentRedirect().confirmCustomer(queryString);
-    }
-
-    @Test(expected = AuthenticationException.class)
-    public void authenticationExceptionRaisedWhenBadCredentialsUsingTR() {
-        CustomerRequest request = new CustomerRequest();
-        CustomerRequest trParams = new CustomerRequest();
-        BraintreeGateway gateway = new BraintreeGateway(Environment.DEVELOPMENT, "integration_merchant_id", "bad_public", "bad_private");
-        String queryString = TestHelper.simulateFormPostForTR(gateway, trParams, request, gateway.customer().transparentRedirectURLForCreate());
-        gateway.customer().confirmTransparentRedirect(queryString);
-    }
-
-    @Test(expected = AuthenticationException.class)
-    public void authenticationExceptionRaisedWhenBadCredentialsUsingNewTR() {
-        CustomerRequest request = new CustomerRequest();
-        CustomerRequest trParams = new CustomerRequest();
-        BraintreeGateway gateway = new BraintreeGateway(Environment.DEVELOPMENT, "integration_merchant_id", "bad_public", "bad_private");
-        String queryString = TestHelper.simulateFormPostForTR(gateway, trParams, request, gateway.transparentRedirect().url());
-        gateway.transparentRedirect().confirmCustomer(queryString);
-    }
-
-    @Test(expected = UpgradeRequiredException.class)
-    public void throwUpgradeRequiredIfClientLibraryIsTooOld() {
-        Http.throwExceptionIfErrorStatusCode(426, "Too old");
-    }
-
     @Test
     public void sslBadCertificate() throws Exception {
         Environment environment = new Environment("https://localhost:19443", "", new String[] {"ssl/api_braintreegateway_com.ca.crt"}, "testing");
@@ -227,27 +187,10 @@ public class HttpTestIT extends IntegrationTest {
             fail();
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("Cert"));
-        } finally {
-            stopSSLServer();
         }
     }
 
-    @Test
-    public void getAuthorizationHeader() {
-        BraintreeGateway config = new BraintreeGateway(Environment.DEVELOPMENT, "development_merchant_id", "integration_public_key", "integration_private_key");
-        Http http = new Http(config.getConfiguration());
-
-        assertEquals("Basic aW50ZWdyYXRpb25fcHVibGljX2tleTppbnRlZ3JhdGlvbl9wcml2YXRlX2tleQ==", http.authorizationHeader());
-    }
-
     private void startSSLServer() throws Exception {
-        String fileName = StringUtils.getFullPathOfFile("script/httpsd.rb");
-        new File(fileName).setExecutable(true);
-        new ProcessBuilder(fileName, "/tmp/httpsd.pid").start().waitFor();
-    }
-
-    private void stopSSLServer() throws IOException {
-        String pid = StringUtils.inputStreamToString(new FileInputStream("/tmp/httpsd.pid"));
-        new ProcessBuilder("kill", "-9", pid).start();
+        new ProcessBuilder("java", "com.braintreegateway.util.HttpsTest").directory(new File("target/test-classes")).start(); Thread.sleep(2000);
     }
 }
