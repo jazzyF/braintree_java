@@ -1,16 +1,17 @@
 package com.braintreegateway;
 
-import com.braintreegateway.util.ClientLibraryProperties;
-
-import java.net.Proxy;
 import java.net.InetSocketAddress;
-import java.util.logging.ConsoleHandler;
+import java.net.Proxy;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.braintreegateway.exceptions.ConfigurationException;
+import com.braintreegateway.util.ClientLibraryProperties;
 
 public class Configuration {
     private Environment environment;
     private int timeout;
+    private int connectTimeout;
     private Proxy proxy;
     private String accessToken;
     private String clientId;
@@ -22,28 +23,40 @@ public class Configuration {
 
     static {
         logger = Logger.getLogger("Braintree");
-        logger.addHandler(new ConsoleHandler());
         logger.setLevel(Level.INFO);
     }
 
     public static final String VERSION = new ClientLibraryProperties().version();
+    public static final String GRAPHQL_API_VERSION = "2018-05-21";
 
     public static String apiVersion() {
-        return "4";
+        return "5";
     }
 
     public Configuration(Environment environment, String merchantId, String publicKey, String privateKey) {
         this.environment = environment;
-        this.merchantId = merchantId;
-        this.publicKey = publicKey;
-        this.privateKey = privateKey;
+
+        if (merchantId == null || merchantId.isEmpty()) {
+            throw new ConfigurationException("merchantId needs to be set");
+        } else {
+            this.merchantId = merchantId;
+        }
+
+        if (publicKey == null || publicKey.isEmpty()) {
+            throw new ConfigurationException("publicKey needs to be set");
+        } else {
+            this.publicKey = publicKey;
+        }
+
+        if (privateKey == null || privateKey.isEmpty()) {
+            throw new ConfigurationException("privateKey needs to be set");
+        } else {
+            this.privateKey = privateKey;
+        }
     }
 
     public Configuration(String environment, String merchantId, String publicKey, String privateKey) {
-        this.environment = Environment.parseEnvironment(environment);
-        this.merchantId = merchantId;
-        this.publicKey = publicKey;
-        this.privateKey = privateKey;
+        this(Environment.parseEnvironment(environment), merchantId, publicKey, privateKey);
     }
 
     public Configuration(String clientId, String clientSecret) {
@@ -100,12 +113,20 @@ public class Configuration {
         return environment.baseURL;
     }
 
+    public String getGraphQLURL() {
+        return environment.graphQLURL;
+    }
+
     public Boolean usesProxy() {
         return proxy != null;
     }
 
     public void setProxy(String url, Integer port) {
         this.proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(url, port));
+    }
+
+    public void setProxy(Proxy proxy) {
+        this.proxy = proxy;
     }
 
     public Proxy getProxy() {
@@ -126,5 +147,13 @@ public class Configuration {
 
     public void setTimeout(Integer timeout) {
         this.timeout = timeout;
+    }
+
+    public int getConnectTimeout() {
+        return connectTimeout;
+    }
+
+    public void setConnectTimeout(Integer timeout) {
+        this.connectTimeout = timeout;
     }
 }

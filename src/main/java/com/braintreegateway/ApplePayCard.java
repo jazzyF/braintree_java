@@ -9,6 +9,7 @@ public class ApplePayCard implements PaymentMethod {
     private String imageUrl;
     private String token;
     private boolean isDefault;
+    private String bin;
     private String cardType;
     private String paymentInstrumentName;
     private String sourceDescription;
@@ -17,6 +18,7 @@ public class ApplePayCard implements PaymentMethod {
     private String expirationYear;
     private boolean expired;
     private String customerId;
+    private String cardholderName;
     private Calendar createdAt;
     private Calendar updatedAt;
     private List<Subscription> subscriptions;
@@ -25,6 +27,7 @@ public class ApplePayCard implements PaymentMethod {
         this.token = node.findString("token");
         this.imageUrl = node.findString("image-url");
         this.isDefault = node.findBoolean("default");
+        this.bin = node.findString("bin");
         this.cardType = node.findString("card-type");
         this.paymentInstrumentName = node.findString("payment-instrument-name");
         this.sourceDescription = node.findString("source-description");
@@ -33,6 +36,7 @@ public class ApplePayCard implements PaymentMethod {
         this.expirationYear = node.findString("expiration-year");
         this.expired = node.findBoolean("expired");
         this.customerId = node.findString("customer-id");
+        this.cardholderName = node.findString("cardholder-name");
         this.createdAt = node.findDateTime("created-at");
         this.updatedAt = node.findDateTime("updated-at");
         this.subscriptions = new ArrayList<Subscription>();
@@ -52,6 +56,10 @@ public class ApplePayCard implements PaymentMethod {
 
     public boolean isDefault() {
         return isDefault;
+    }
+
+    public String getBin() {
+        return bin;
     }
 
     public String getCardType() {
@@ -96,5 +104,9 @@ public class ApplePayCard implements PaymentMethod {
 
     public String getCustomerId() {
         return customerId;
+    }
+
+    public String getCardholderName() {
+        return cardholderName;
     }
 }

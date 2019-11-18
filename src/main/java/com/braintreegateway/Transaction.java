@@ -49,6 +49,7 @@ public class Transaction {
         DUPLICATE("duplicate"),
         FRAUD("fraud"),
         THREE_D_SECURE("three_d_secure"),
+        TOKEN_ISSUANCE("token_issuance"),
         UNRECOGNIZED("unrecognized");
 
         private final String name;
@@ -87,7 +88,8 @@ public class Transaction {
 
     public enum IndustryType {
         LODGING("lodging"),
-        TRAVEL_CRUISE("travel_cruise");
+        TRAVEL_CRUISE("travel_cruise"),
+        TRAVEL_FLIGHT("travel_flight");
 
         private final String name;
 
@@ -141,31 +143,48 @@ public class Transaction {
     private String merchantAccountId;
     private String orderId;
     private PayPalDetails paypalDetails;
+    private PayPalHereDetails paypalHereDetails;
     private ApplePayDetails applePayDetails;
     private AndroidPayDetails androidPayDetails;
     private AmexExpressCheckoutDetails amexExpressCheckoutDetails;
     private VenmoAccountDetails venmoAccountDetails;
+    private UsBankAccountDetails usBankAccountDetails;
+    // NEXT_MAJOR_VERSION Remove this class as legacy Ideal has been removed/disabled in the Braintree Gateway
+    // DEPRECATED If you're looking to accept iDEAL as a payment method contact accounts@braintreepayments.com for a solution.
+    private IdealPaymentDetails idealPaymentDetails;
+    private VisaCheckoutCardDetails visaCheckoutCardDetails;
+    private MasterpassCardDetails masterpassCardDetails;
+    private LocalPaymentDetails localPaymentDetails;
+    private CustomActionsPaymentMethodDetails customActionsPaymentMethodDetails;
     private String planId;
     private String processorAuthorizationCode;
     private String processorResponseCode;
     private String processorResponseText;
+    private ProcessorResponseType processorResponseType;
     private String processorSettlementResponseCode;
     private String processorSettlementResponseText;
     private String additionalProcessorResponse;
+    private String networkResponseCode;
+    private String networkResponseText;
     private String voiceReferralNumber;
     private String purchaseOrderNumber;
     private Boolean recurring;
     private String refundedTransactionId;
     private String refundId;
     private List<String> refundIds;
+    private SamsungPayCardDetails samsungPayCardDetails;
     private String settlementBatchId;
     private Address shippingAddress;
     private Status status;
     private List<StatusEvent> statusHistory;
     private String subscriptionId;
     private Subscription subscription;
+    private SubscriptionDetails subscriptionDetails;
     private BigDecimal taxAmount;
     private Boolean taxExempt;
+    private BigDecimal shippingAmount;
+    private BigDecimal discountAmount;
+    private String shipsFromPostalCode;
     private Type type;
     private Calendar updatedAt;
     private BigDecimal serviceFeeAmount;
@@ -175,30 +194,54 @@ public class Transaction {
     private CoinbaseDetails coinbaseDetails;
     private String authorizedTransactionId;
     private List<String> partialSettlementTransactionIds;
+    private List<AuthorizationAdjustment> authorizationAdjustments;
+    private FacilitatedDetails facilitatedDetails;
+    private FacilitatorDetails facilitatorDetails;
+    private String networkTransactionId;
+    private Calendar authorizationExpiresAt;
 
     public Transaction(NodeWrapper node) {
         amount = node.findBigDecimal("amount");
         avsErrorResponseCode = node.findString("avs-error-response-code");
         avsPostalCodeResponseCode = node.findString("avs-postal-code-response-code");
         avsStreetAddressResponseCode = node.findString("avs-street-address-response-code");
-        billingAddress = new Address(node.findFirst("billing"));
         channel = node.findString("channel");
         createdAt = node.findDateTime("created-at");
-        creditCard = new CreditCard(node.findFirst("credit-card"));
         currencyIsoCode = node.findString("currency-iso-code");
         customFields = node.findMap("custom-fields/*");
-        customer = new Customer(node.findFirst("customer"));
         cvvResponseCode = node.findString("cvv-response-code");
-        disbursementDetails = new DisbursementDetails(node.findFirst("disbursement-details"));
-        descriptor = new Descriptor(node.findFirst("descriptor"));
         escrowStatus = EnumUtils.findByName(EscrowStatus.class, node.findString("escrow-status"), EscrowStatus.UNRECOGNIZED);
         gatewayRejectionReason = EnumUtils.findByName(GatewayRejectionReason.class, node.findString("gateway-rejection-reason"), GatewayRejectionReason.UNRECOGNIZED);
         id = node.findString("id");
         merchantAccountId = node.findString("merchant-account-id");
         orderId = node.findString("order-id");
+        NodeWrapper billingAddressNode = node.findFirst("billing");
+        if (billingAddressNode != null) {
+            billingAddress = new Address(billingAddressNode);
+        }
+        NodeWrapper creditCardNode = node.findFirst("credit-card");
+        if (creditCardNode != null) {
+            creditCard = new CreditCard(creditCardNode);
+        }
+        NodeWrapper customerNode = node.findFirst("customer");
+        if (customerNode != null) {
+            customer = new Customer(customerNode);
+        }
+        NodeWrapper disbursementDetailsNode = node.findFirst("disbursement-details");
+        if (disbursementDetailsNode != null) {
+            disbursementDetails = new DisbursementDetails(disbursementDetailsNode);
+        }
+        NodeWrapper descriptorNode = node.findFirst("descriptor");
+        if (descriptorNode != null) {
+            descriptor = new Descriptor(descriptorNode);
+        }
         NodeWrapper paypalNode = node.findFirst("paypal");
         if (paypalNode != null) {
             paypalDetails = new PayPalDetails(paypalNode);
+        }
+        NodeWrapper paypalHereNode = node.findFirst("paypal-here");
+        if (paypalHereNode != null) {
+            paypalHereDetails = new PayPalHereDetails(paypalHereNode);
         }
         NodeWrapper applePayNode = node.findFirst("apple-pay");
         if (applePayNode != null) {
@@ -220,13 +263,46 @@ public class Transaction {
         if (venmoAccountNode != null) {
             venmoAccountDetails = new VenmoAccountDetails(venmoAccountNode);
         }
+        NodeWrapper usBankAccountNode = node.findFirst("us-bank-account");
+        if (usBankAccountNode != null) {
+            usBankAccountDetails = new UsBankAccountDetails(usBankAccountNode);
+        }
+        // NEXT_MAJOR_VERSION Remove this class as legacy Ideal has been removed/disabled in the Braintree Gateway
+        // DEPRECATED If you're looking to accept iDEAL as a payment method contact accounts@braintreepayments.com for a solution.
+        NodeWrapper idealPaymentNode = node.findFirst("ideal-payment");
+        if (idealPaymentNode != null) {
+            idealPaymentDetails = new IdealPaymentDetails(idealPaymentNode);
+        }
+        NodeWrapper localPaymentNode = node.findFirst("local-payment");
+        if (localPaymentNode != null) {
+            localPaymentDetails = new LocalPaymentDetails(localPaymentNode);
+        }
+        NodeWrapper visaCheckoutCardNode = node.findFirst("visa-checkout-card");
+        if (visaCheckoutCardNode != null) {
+            visaCheckoutCardDetails = new VisaCheckoutCardDetails(visaCheckoutCardNode);
+        }
+        NodeWrapper masterpassCardNode = node.findFirst("masterpass-card");
+        if (masterpassCardNode != null) {
+            masterpassCardDetails = new MasterpassCardDetails(masterpassCardNode);
+        }
+        NodeWrapper samsungPayCardNode = node.findFirst("samsung-pay-card");
+        if (samsungPayCardNode != null) {
+            samsungPayCardDetails = new SamsungPayCardDetails(samsungPayCardNode);
+        }
+        NodeWrapper customActionsPaymentMethodNode = node.findFirst("custom-actions-payment-method");
+        if (customActionsPaymentMethodNode != null) {
+            customActionsPaymentMethodDetails = new CustomActionsPaymentMethodDetails(customActionsPaymentMethodNode);
+        }
         planId = node.findString("plan-id");
         processorAuthorizationCode = node.findString("processor-authorization-code");
         processorResponseCode = node.findString("processor-response-code");
         processorResponseText = node.findString("processor-response-text");
+        processorResponseType = EnumUtils.findByName(ProcessorResponseType.class, node.findString("processor-response-type"), ProcessorResponseType.UNRECOGNIZED);
         processorSettlementResponseCode = node.findString("processor-settlement-response-code");
         processorSettlementResponseText = node.findString("processor-settlement-response-text");
         additionalProcessorResponse = node.findString("additional-processor-response");
+        networkResponseCode = node.findString("network-response-code");
+        networkResponseText = node.findString("network-response-text");
         voiceReferralNumber = node.findString("voice-referral-number");
         purchaseOrderNumber = node.findString("purchase-order-number");
         recurring = node.findBoolean("recurring");
@@ -245,12 +321,25 @@ public class Transaction {
 
         serviceFeeAmount = node.findBigDecimal("service-fee-amount");
         settlementBatchId = node.findString("settlement-batch-id");
-        shippingAddress = new Address(node.findFirst("shipping"));
+
+        NodeWrapper shippingAddressNode = node.findFirst("shipping");
+        if (shippingAddressNode != null) {
+            shippingAddress = new Address(shippingAddressNode);
+        }
+
         status = EnumUtils.findByName(Status.class, node.findString("status"), Status.UNRECOGNIZED);
-        subscription = new Subscription(node.findFirst("subscription"));
+
+        NodeWrapper subscriptionNode = node.findFirst("subscription");
+        if (subscriptionNode != null) {
+            subscriptionDetails = new SubscriptionDetails(subscriptionNode);
+            subscription = new Subscription(subscriptionNode);
+        }
         subscriptionId = node.findString("subscription-id");
         taxAmount = node.findBigDecimal("tax-amount");
         taxExempt = node.findBoolean("tax-exempt");
+        shippingAmount = node.findBigDecimal("shipping-amount");
+        discountAmount = node.findBigDecimal("discount-amount");
+        shipsFromPostalCode = node.findString("ships-from-postal-code");
         type = EnumUtils.findByName(Type.class, node.findString("type"), Type.UNRECOGNIZED);
         updatedAt = node.findDateTime("updated-at");
 
@@ -287,6 +376,25 @@ public class Transaction {
         for (NodeWrapper partialSettlementTransactionIdNode : node.findAll("partial-settlement-transaction-ids/*")) {
             partialSettlementTransactionIds.add(partialSettlementTransactionIdNode.findString("."));
         }
+
+        authorizationAdjustments = new ArrayList<AuthorizationAdjustment>();
+        for (NodeWrapper authorizationAdjustmentNode : node.findAll("authorization-adjustments/authorization-adjustment")) {
+            authorizationAdjustments.add(new AuthorizationAdjustment(authorizationAdjustmentNode));
+        }
+
+        NodeWrapper facilitatedDetailsNode = node.findFirst("facilitated-details");
+        if (facilitatedDetailsNode != null) {
+            facilitatedDetails = new FacilitatedDetails(facilitatedDetailsNode);
+        }
+
+        NodeWrapper facilitatorDetailsNode = node.findFirst("facilitator-details");
+        if (facilitatorDetailsNode != null) {
+            facilitatorDetails = new FacilitatorDetails(facilitatorDetailsNode);
+        }
+
+        networkTransactionId = node.findString("network-transaction-id");
+
+        authorizationExpiresAt = node.findDateTime("authorization-expires-at");
     }
 
     public List<AddOn> getAddOns() {
@@ -381,6 +489,10 @@ public class Transaction {
         return paypalDetails;
     }
 
+    public PayPalHereDetails getPayPalHereDetails() {
+        return paypalHereDetails;
+    }
+
     public ApplePayDetails getApplePayDetails() {
         return applePayDetails;
     }
@@ -401,6 +513,38 @@ public class Transaction {
         return venmoAccountDetails;
     }
 
+    public UsBankAccountDetails getUsBankAccountDetails() {
+        return usBankAccountDetails;
+    }
+
+    // NEXT_MAJOR_VERSION Remove this class as legacy Ideal has been removed/disabled in the Braintree Gateway
+    /**
+     * @deprecated If you're looking to accept iDEAL as a payment method [contact us](accounts@braintreepayments.com) for a solution.
+     */
+    public IdealPaymentDetails getIdealPaymentDetails() {
+        return idealPaymentDetails;
+    }
+
+    public LocalPaymentDetails getLocalPaymentDetails() {
+        return localPaymentDetails;
+    }
+
+    public VisaCheckoutCardDetails getVisaCheckoutCardDetails() {
+        return visaCheckoutCardDetails;
+    }
+
+    public MasterpassCardDetails getMasterpassCardDetails() {
+        return masterpassCardDetails;
+    }
+
+    public SamsungPayCardDetails getSamsungPayCardDetails() {
+        return samsungPayCardDetails;
+    }
+
+    public CustomActionsPaymentMethodDetails getCustomActionsPaymentMethodDetails() {
+        return customActionsPaymentMethodDetails;
+    }
+
     public String getPlanId() {
         return planId;
     }
@@ -417,6 +561,10 @@ public class Transaction {
         return processorResponseText;
     }
 
+    public ProcessorResponseType getProcessorResponseType() {
+        return processorResponseType;
+    }
+
     public String getProcessorSettlementResponseCode() {
         return processorSettlementResponseCode;
     }
@@ -427,6 +575,14 @@ public class Transaction {
 
     public String getAdditionalProcessorResponse() {
         return additionalProcessorResponse;
+    }
+
+    public String getNetworkResponseCode() {
+        return networkResponseCode;
+    }
+
+    public String getNetworkResponseText() {
+        return networkResponseText;
     }
 
     public String getVoiceReferralNumber() {
@@ -442,7 +598,8 @@ public class Transaction {
     }
 
     /**
-     * Please use Transaction.getRefundIds() instead
+     * @deprecated see #getRefundIds()
+     * @return the refund id
      */
     @Deprecated
     public String getRefundId() {
@@ -485,12 +642,33 @@ public class Transaction {
         return subscriptionId;
     }
 
+    public SubscriptionDetails getSubscriptionDetails() {
+        return subscriptionDetails;
+    }
+
+    /**
+     * @deprecated see #getSubscriptionDetails()
+     * @return the subscription
+     */
+    @Deprecated
     public Subscription getSubscription() {
         return subscription;
     }
 
     public BigDecimal getTaxAmount() {
         return taxAmount;
+    }
+
+    public BigDecimal getShippingAmount() {
+        return shippingAmount;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public String getShipsFromPostalCode() {
+        return shipsFromPostalCode;
     }
 
     public Type getType() {
@@ -547,5 +725,29 @@ public class Transaction {
 
     public List<String> getPartialSettlementTransactionIds() {
         return partialSettlementTransactionIds;
+    }
+
+    public List<AuthorizationAdjustment> getAuthorizationAdjustments() {
+        return authorizationAdjustments;
+    }
+
+    public FacilitatedDetails getFacilitatedDetails() {
+        return facilitatedDetails;
+    }
+
+    public FacilitatorDetails getFacilitatorDetails() {
+        return facilitatorDetails;
+    }
+
+    public List<TransactionLineItem> getLineItems(BraintreeGateway gateway) {
+        return gateway.transactionLineItem().findAll(id);
+    }
+
+    public String getNetworkTransactionId() {
+        return networkTransactionId;
+    }
+
+    public Calendar getAuthorizationExpiresAt() {
+        return authorizationExpiresAt;
     }
 }

@@ -9,10 +9,17 @@ public class TransactionOptionsRequest extends Request {
     private Boolean storeShippingAddressInVault;
     private Boolean submitForSettlement;
     private String venmoSdkSession;
+    private String payeeId;
     private String payeeEmail;
+    private Boolean skipAdvancedFraudChecking;
+    private Boolean skipAvs;
+    private Boolean skipCvv;
     private TransactionOptionsPayPalRequest transactionOptionsPayPalRequest;
+    private TransactionOptionsAdyenRequest transactionOptionsAdyenRequest;
     private TransactionOptionsAmexRewardsRequest transactionOptionsAmexRewardsRequest;
     private TransactionOptionsThreeDSecureRequest transactionOptionsThreeDSecureRequest;
+    private TransactionOptionsVenmoRequest transactionOptionsVenmoRequest;
+    private TransactionOptionsCreditCardRequest transactionOptionsCreditCardRequest;
 
     public TransactionOptionsRequest(TransactionRequest parent) {
         this.parent = parent;
@@ -57,14 +64,39 @@ public class TransactionOptionsRequest extends Request {
         return this;
     }
 
+    public TransactionOptionsRequest payeeId(String payeeId) {
+        this.payeeId = payeeId;
+        return this;
+    }
+
     public TransactionOptionsRequest payeeEmail(String payeeEmail) {
         this.payeeEmail = payeeEmail;
+        return this;
+    }
+
+    public TransactionOptionsRequest skipAdvancedFraudChecking(Boolean skipAdvancedFraudChecking) {
+        this.skipAdvancedFraudChecking = skipAdvancedFraudChecking;
+        return this;
+    }
+
+    public TransactionOptionsRequest skipAvs(Boolean skipAvs) {
+        this.skipAvs = skipAvs;
+        return this;
+    }
+
+    public TransactionOptionsRequest skipCvv(Boolean skipCvv) {
+        this.skipCvv = skipCvv;
         return this;
     }
 
     public TransactionOptionsPayPalRequest paypal() {
         transactionOptionsPayPalRequest = new TransactionOptionsPayPalRequest(this);
         return transactionOptionsPayPalRequest;
+    }
+
+    public TransactionOptionsAdyenRequest adyen() {
+        transactionOptionsAdyenRequest = new TransactionOptionsAdyenRequest(this);
+        return transactionOptionsAdyenRequest;
     }
 
     public TransactionOptionsAmexRewardsRequest amexRewards() {
@@ -75,6 +107,16 @@ public class TransactionOptionsRequest extends Request {
     public TransactionOptionsThreeDSecureRequest threeDSecure() {
         transactionOptionsThreeDSecureRequest = new TransactionOptionsThreeDSecureRequest(this);
         return transactionOptionsThreeDSecureRequest;
+    }
+
+    public TransactionOptionsVenmoRequest venmo() {
+        transactionOptionsVenmoRequest = new TransactionOptionsVenmoRequest(this);
+        return transactionOptionsVenmoRequest;
+    }
+
+    public TransactionOptionsCreditCardRequest creditCard() {
+        transactionOptionsCreditCardRequest = new TransactionOptionsCreditCardRequest(this);
+        return transactionOptionsCreditCardRequest;
     }
 
     @Override
@@ -101,9 +143,16 @@ public class TransactionOptionsRequest extends Request {
             addElement("storeShippingAddressInVault", storeShippingAddressInVault).
             addElement("submitForSettlement", submitForSettlement).
             addElement("venmoSdkSession", venmoSdkSession).
+            addElement("payeeId", payeeId).
             addElement("payeeEmail", payeeEmail).
+            addElement("skipAdvancedFraudChecking", skipAdvancedFraudChecking).
+            addElement("skipAvs", skipAvs).
+            addElement("skipCvv", skipCvv).
             addElement("threeDSecure", transactionOptionsThreeDSecureRequest).
+            addElement("venmo", transactionOptionsVenmoRequest).
+            addElement("adyen", transactionOptionsAdyenRequest).
             addElement("paypal", transactionOptionsPayPalRequest).
-            addElement("payWithAmexRewards", transactionOptionsAmexRewardsRequest);
+            addElement("payWithAmexRewards", transactionOptionsAmexRewardsRequest).
+            addElement("creditCard", transactionOptionsCreditCardRequest);
     }
 }

@@ -3,7 +3,9 @@ package com.braintreegateway;
 import com.braintreegateway.Transaction.Type;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,14 +28,20 @@ public class TransactionRequest extends Request {
     private String paymentMethodToken;
     private String purchaseOrderNumber;
     private Boolean recurring;
+    private String source;
     private String shippingAddressId;
     private String billingAddressId;
+    private TransactionApplePayCardRequest applePayCardRequest;
     private TransactionDescriptorRequest descriptorRequest;
     private TransactionIndustryRequest industryRequest;
     private TransactionAddressRequest shippingAddressRequest;
     private TransactionOptionsRequest transactionOptionsRequest;
+    private TransactionThreeDSecurePassThruRequest threeDSecurePassThruRequest;
     private BigDecimal taxAmount;
     private Boolean taxExempt;
+    private BigDecimal shippingAmount;
+    private BigDecimal discountAmount;
+    private String shipsFromPostalCode;
     private Type type;
     private String venmoSdkPaymentMethodCode;
     private String paymentMethodNonce;
@@ -41,15 +49,24 @@ public class TransactionRequest extends Request {
 
     private String threeDSecureToken;
     private Boolean threeDSecureTransaction;
+    private String threeDSecureAuthenticationId;
 
     private String sharedPaymentMethodToken;
+    private String sharedPaymentMethodNonce;
     private String sharedCustomerId;
     private String sharedShippingAddressId;
     private String sharedBillingAddressId;
 
+    private RiskDataTransactionRequest riskDataTransactionRequest;
+
+    private List<TransactionLineItemRequest> transactionLineItemRequests;
+
+    private ExternalVaultRequest externalVaultRequest;
+
     public TransactionRequest() {
         this.customFields = new HashMap<String, String>();
         this.threeDSecureTransaction = false;
+        this.transactionLineItemRequests = new ArrayList<TransactionLineItemRequest>();
     }
 
     public TransactionRequest amount(BigDecimal amount) {
@@ -137,6 +154,11 @@ public class TransactionRequest extends Request {
         return transactionOptionsRequest;
     }
 
+    public TransactionThreeDSecurePassThruRequest threeDSecurePassThru() {
+        threeDSecurePassThruRequest = new TransactionThreeDSecurePassThruRequest(this);
+        return threeDSecurePassThruRequest;
+    }
+
     public TransactionRequest orderId(String orderId) {
         this.orderId = orderId;
         return this;
@@ -154,6 +176,11 @@ public class TransactionRequest extends Request {
 
     public TransactionRequest recurring(Boolean recurring) {
         this.recurring = recurring;
+        return this;
+    }
+
+    public TransactionRequest transactionSource(String source) {
+        this.source = source;
         return this;
     }
 
@@ -182,6 +209,21 @@ public class TransactionRequest extends Request {
         return this;
     }
 
+    public TransactionRequest shippingAmount(BigDecimal shippingAmount) {
+        this.shippingAmount = shippingAmount;
+        return this;
+    }
+
+    public TransactionRequest discountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
+        return this;
+    }
+
+    public TransactionRequest shipsFromPostalCode(String shipsFromPostalCode) {
+        this.shipsFromPostalCode = shipsFromPostalCode;
+        return this;
+    }
+
     public TransactionRequest venmoSdkPaymentMethodCode(String venmoSdkPaymentMethodCode) {
       this.venmoSdkPaymentMethodCode = venmoSdkPaymentMethodCode;
       return this;
@@ -198,8 +240,19 @@ public class TransactionRequest extends Request {
       return this;
     }
 
+    public TransactionRequest threeDSecureAuthenticationId(String threeDSecureAuthenticationId) {
+      this.threeDSecureTransaction = true;
+      this.threeDSecureAuthenticationId = threeDSecureAuthenticationId;
+      return this;
+    }
+
     public TransactionRequest sharedPaymentMethodToken(String sharedPaymentMethodToken) {
         this.sharedPaymentMethodToken = sharedPaymentMethodToken;
+        return this;
+    }
+
+    public TransactionRequest sharedPaymentMethodNonce(String sharedPaymentMethodNonce) {
+        this.sharedPaymentMethodNonce = sharedPaymentMethodNonce;
         return this;
     }
 
@@ -216,6 +269,29 @@ public class TransactionRequest extends Request {
     public TransactionRequest sharedBillingAddressId(String sharedBillingAddressId) {
         this.sharedBillingAddressId = sharedBillingAddressId;
         return this;
+    }
+
+    public RiskDataTransactionRequest riskData() {
+        riskDataTransactionRequest = new RiskDataTransactionRequest(this);
+        return riskDataTransactionRequest;
+    }
+
+    public TransactionLineItemRequest lineItem() {
+        TransactionLineItemRequest transactionLineItemRequest = new TransactionLineItemRequest(this);
+        transactionLineItemRequests.add(transactionLineItemRequest);
+        return transactionLineItemRequest;
+    }
+
+    public TransactionApplePayCardRequest applePayCardRequest() {
+        TransactionApplePayCardRequest applePayCardRequest = new TransactionApplePayCardRequest(this);
+        this.applePayCardRequest = applePayCardRequest;
+        return applePayCardRequest;
+    }
+
+    public ExternalVaultRequest externalVault() {
+        ExternalVaultRequest externalVaultRequest = new ExternalVaultRequest(this);
+        this.externalVaultRequest = externalVaultRequest;
+        return externalVaultRequest;
     }
 
     @Override
@@ -251,9 +327,13 @@ public class TransactionRequest extends Request {
             addElement("purchaseOrderNumber", purchaseOrderNumber).
             addElement("taxAmount", taxAmount).
             addElement("taxExempt", taxExempt).
+            addElement("shippingAmount", shippingAmount).
+            addElement("discountAmount", discountAmount).
+            addElement("shipsFromPostalCode", shipsFromPostalCode).
             addElement("shippingAddressId", shippingAddressId).
             addElement("billingAddressId", billingAddressId).
             addElement("creditCard", creditCardRequest).
+            addElement("applePayCard", applePayCardRequest).
             addElement("paypalAccount", paypalRequest).
             addElement("customer", customerRequest).
             addElement("descriptor", descriptorRequest).
@@ -261,15 +341,20 @@ public class TransactionRequest extends Request {
             addElement("billing", billingAddressRequest).
             addElement("shipping", shippingAddressRequest).
             addElement("options", transactionOptionsRequest).
+            addElement("threeDSecurePassThru", threeDSecurePassThruRequest).
             addElement("recurring", recurring).
+            addElement("transactionSource", source).
             addElement("deviceSessionId", deviceSessionId).
             addElement("fraudMerchantId", fraudMerchantId).
             addElement("venmoSdkPaymentMethodCode", venmoSdkPaymentMethodCode).
             addElement("sharedPaymentMethodToken", sharedPaymentMethodToken).
+            addElement("sharedPaymentMethodNonce", sharedPaymentMethodNonce).
             addElement("sharedCustomerId", sharedCustomerId).
             addElement("sharedShippingAddressId", sharedShippingAddressId).
             addElement("sharedBillingAddressId", sharedBillingAddressId).
-            addElement("serviceFeeAmount", serviceFeeAmount);
+            addElement("serviceFeeAmount", serviceFeeAmount).
+            addElement("riskData", riskDataTransactionRequest).
+            addElement("externalVault", externalVaultRequest);
 
         if (!customFields.isEmpty()) {
             builder.addElement("customFields", customFields);
@@ -279,8 +364,16 @@ public class TransactionRequest extends Request {
         }
 
         if (threeDSecureTransaction) {
-            String token = threeDSecureToken != null ? threeDSecureToken : "";
-            builder.addElement("threeDSecureToken", token);
+            if (threeDSecureAuthenticationId != null) {
+                builder.addElement("threeDSecureAuthenticationId", threeDSecureAuthenticationId);
+            } else {
+                String token = threeDSecureToken != null ? threeDSecureToken : "";
+                builder.addElement("threeDSecureToken", token);
+            }
+        }
+
+        if (!transactionLineItemRequests.isEmpty()) {
+            builder.addElement("lineItems", transactionLineItemRequests);
         }
 
         return builder;
